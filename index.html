@@ -1,0 +1,2450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PSSDC — CBT Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root {
+    --navy: #0A3D62;
+    --navy-dark: #062744;
+    --navy-mid: #12507F;
+    --gold: #C9922A;
+    --gold-light: #E4B563;
+    --bg: #F3F5F8;
+    --card: #FFFFFF;
+    --ink: #16232E;
+    --ink-soft: #57677A;
+    --border: #E1E6EC;
+    --danger: #C0392B;
+    --danger-bg: #FDECEA;
+    --success: #1E8449;
+    --success-bg: #E9F7EF;
+    --warn: #B7791F;
+    --warn-bg: #FEF3E2;
+    --radius: 10px;
+    --shadow: 0 2px 10px rgba(10, 61, 98, 0.08);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  button { font-family: inherit; cursor: pointer; }
+  input, select, textarea { font-family: inherit; }
+
+  /* ---------- Shell ---------- */
+  #app { min-height: 100vh; display: flex; flex-direction: column; }
+  .topbar {
+    background: var(--navy-dark);
+    color: #fff;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--shadow);
+    position: relative;
+    z-index: 10;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand .crest {
+    width: 40px; height: 40px; border-radius: 50%;
+    object-fit: contain; display: block; flex-shrink: 0;
+    background: #fff; padding: 2px;
+  }
+  .brand-text { line-height: 1.25; }
+  .brand-text .t1 { font-weight: 700; font-size: 14.5px; letter-spacing: 0.2px; }
+  .brand-text .t2 { font-size: 11.5px; color: #B9CBDA; text-transform: uppercase; letter-spacing: 1px; }
+  .topbar-right { display: flex; align-items: center; gap: 14px; font-size: 14px; }
+  .role-pill {
+    background: var(--gold); color: var(--navy-dark); font-weight: 700;
+    padding: 4px 12px; border-radius: 999px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .btn-logout {
+    background: transparent; border: 1px solid #2E5D82; color: #fff; padding: 7px 14px;
+    border-radius: 7px; font-size: 13px; font-weight: 500;
+  }
+  .btn-logout:hover { background: #123655; }
+
+  main { flex: 1; padding: 28px; max-width: 1180px; margin: 0 auto; width: 100%; }
+
+  .footer {
+    text-align: center; padding: 16px; font-size: 12px; color: var(--ink-soft);
+    border-top: 1px solid var(--border); background: var(--card);
+  }
+  .footer strong { color: var(--navy); }
+
+  /* ---------- Cards / layout ---------- */
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 22px; box-shadow: var(--shadow); margin-bottom: 20px;
+  }
+  .card h2 { margin: 0 0 4px; font-size: 18px; color: var(--navy-dark); }
+  .card .sub { color: var(--ink-soft); font-size: 13px; margin-bottom: 16px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 800px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  label { display: block; font-size: 13px; font-weight: 600; color: var(--ink); margin: 12px 0 6px; }
+  input[type=text], input[type=password], input[type=number], select, textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; font-size: 14px;
+    background: #fff; color: var(--ink);
+  }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--navy-mid); outline-offset: 1px; border-color: var(--navy-mid); }
+  textarea { resize: vertical; min-height: 70px; }
+
+  .btn { background: var(--navy); color: #fff; border: none; padding: 11px 20px; border-radius: 7px; font-weight: 600; font-size: 14px; }
+  .btn:hover { background: var(--navy-mid); }
+  .btn:disabled { background: #A9B7C3; cursor: not-allowed; }
+  .btn-gold { background: var(--gold); color: var(--navy-dark); }
+  .btn-gold:hover { background: var(--gold-light); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-outline { background: transparent; border: 1px solid var(--navy); color: var(--navy); }
+  .btn-sm { padding: 7px 12px; font-size: 12.5px; border-radius: 6px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); }
+  th { color: var(--ink-soft); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; }
+
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; }
+  .badge-ok { background: var(--success-bg); color: var(--success); }
+  .badge-warn { background: var(--warn-bg); color: var(--warn); }
+  .badge-danger { background: var(--danger-bg); color: var(--danger); }
+
+  /* ---------- Login ---------- */
+  .login-wrap {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle at 20% 20%, #12507F 0%, #062744 60%, #041B30 100%);
+  }
+  .login-card {
+    width: 380px; background: var(--card); border-radius: 14px; padding: 34px 32px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  }
+  .login-crest {
+    width: 84px; height: 84px; border-radius: 50%; margin: 0 auto 14px;
+    object-fit: contain; display: block;
+  }
+  .login-title { text-align: center; font-size: 17px; font-weight: 700; color: var(--navy-dark); margin-bottom: 2px; }
+  .login-sub { text-align: center; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 24px; }
+  .error-msg { background: var(--danger-bg); color: var(--danger); padding: 9px 12px; border-radius: 7px; font-size: 13px; margin-top: 12px; }
+
+  /* ---------- Permission gate ---------- */
+  .gate-overlay {
+    position: fixed; inset: 0; background: var(--navy-dark); z-index: 999;
+    display: flex; align-items: center; justify-content: center; color: #fff;
+    overflow-y: auto; padding: 16px; box-sizing: border-box;
+  }
+  .gate-card { max-width: 480px; padding: 40px; text-align: center; }
+  .gate-icon { font-size: 44px; margin-bottom: 14px; }
+  .gate-card h2 { color: #fff; margin-bottom: 8px; }
+  .gate-card p { color: #C7D6E3; font-size: 14.5px; line-height: 1.6; }
+  .gate-list { text-align: left; background: rgba(255,255,255,0.06); border-radius: 8px; padding: 16px 20px; margin: 18px 0; font-size: 13.5px; color: #DCE7F0; }
+  .gate-list li { margin-bottom: 6px; }
+
+  /* ---------- Exam interface ---------- */
+  .exam-shell { display: grid; grid-template-columns: 1fr 260px; gap: 20px; }
+  @media (max-width: 900px) { .exam-shell { grid-template-columns: 1fr; } }
+  .exam-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--navy-dark); color: #fff; padding: 12px 20px; border-radius: 10px; margin-bottom: 18px;
+  }
+  .rec-indicator { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13.5px; }
+  .rec-dot {
+    width: 11px; height: 11px; border-radius: 50%; background: #E74C3C;
+    animation: pulse 1.4s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+  .timer { font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 700; }
+  .timer.low { color: #FF8A80; }
+
+  .question-nav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .qn-btn {
+    width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--border); background: #fff;
+    font-size: 12.5px; font-weight: 600; color: var(--ink-soft);
+  }
+  .qn-btn.answered { background: var(--success-bg); border-color: var(--success); color: var(--success); }
+  .qn-btn.current { background: var(--navy); border-color: var(--navy); color: #fff; }
+
+  .q-prompt { font-size: 16px; font-weight: 600; margin-bottom: 18px; line-height: 1.5; }
+  .options-list { display: flex; flex-direction: column; gap: 10px; }
+  .option-row {
+    display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1.5px solid var(--border);
+    border-radius: 8px; cursor: pointer; font-size: 14.5px;
+  }
+  .option-row:hover { border-color: var(--navy-mid); }
+  .option-row.selected { border-color: var(--navy); background: #EAF1F7; }
+  .option-row input { margin: 0; }
+
+  .dragdrop-list { display: flex; flex-direction: column; gap: 8px; }
+  .drag-item {
+    padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 8px; background: #fff;
+    display: flex; align-items: center; gap: 10px; cursor: grab; font-size: 14px;
+  }
+  .drag-item.dragging { opacity: 0.4; }
+  .drag-handle { color: var(--ink-soft); font-size: 16px; }
+  .drag-index { width: 22px; height: 22px; border-radius: 50%; background: var(--navy); color: #fff; font-size: 11.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+  .match-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .match-col-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ink-soft); margin-bottom: 8px; font-weight: 700; }
+  .match-item { padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 7px; margin-bottom: 8px; font-size: 14px; background: #fff; }
+  .match-select { margin-top: 4px; }
+
+  .side-panel .card { padding: 18px; }
+  .cam-preview {
+    width: 100%; border-radius: 10px; background: #000; aspect-ratio: 4/3; object-fit: cover;
+    border: 5px solid #0A64C8; box-sizing: border-box;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .cam-preview.face-lost {
+    border-color: #E01E1E;
+    box-shadow: 0 0 0 3px rgba(224, 30, 30, 0.35);
+    animation: pulse 1.2s infinite;
+  }
+
+  .exam-actions { display: flex; justify-content: space-between; margin-top: 22px; }
+
+  .violation-toast {
+    position: fixed; top: 20px; right: 20px; background: var(--danger); color: #fff; padding: 14px 20px;
+    border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); z-index: 1000; font-size: 14px; font-weight: 600;
+    max-width: 320px;
+  }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--ink-soft); }
+  .hidden { display: none !important; }
+
+  /* ---------- Consent & snapshots ---------- */
+  .consent-check { display: flex; gap: 10px; align-items: flex-start; text-align: left; background: rgba(255,255,255,0.06); border-radius: 8px; padding: 14px 16px; margin: 16px 0; font-size: 13.5px; color: #DCE7F0; }
+  .consent-check input { margin-top: 3px; flex-shrink: 0; }
+  .snap-video { width: 100%; max-width: 420px; border-radius: 10px; background: #000; aspect-ratio: 4/3; object-fit: cover; }
+  .snap-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+  .snap-slot { background: rgba(255,255,255,0.06); border: 1px dashed #4A6B87; border-radius: 8px; padding: 8px; text-align: center; }
+  .snap-slot.filled { border-style: solid; border-color: var(--gold); }
+  .snap-slot img { width: 100%; border-radius: 6px; aspect-ratio: 4/3; object-fit: cover; }
+  .snap-slot .slot-label { font-size: 11.5px; color: #C7D6E3; margin: 6px 0 4px; font-weight: 600; }
+  .snap-slot .slot-empty { aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center; color: #4A6B87; font-size: 26px; }
+
+  /* ---------- Snapshot step: fit-everything-on-one-screen layout ----------
+     Everything on this step is sized against the viewport HEIGHT (svh/vh),
+     so the camera preview, all four slots, and the Capture button are always
+     visible together without scrolling or zooming, on any device. */
+  .snap-card {
+    max-width: 620px; width: 100%; margin: auto;
+    display: flex; flex-direction: column;
+    max-height: 96vh; max-height: 96svh; box-sizing: border-box; padding: 2.2vh 24px; padding: 2.2svh 24px;
+  }
+  .snap-card h2 { margin: 0 0 0.4vh; margin: 0 0 0.4svh; font-size: clamp(17px, 2.4vh, 22px); font-size: clamp(17px, 2.4svh, 22px); }
+  .snap-card .snap-intro {
+    color: #C7D6E3; line-height: 1.4; margin: 0 0 1.2vh; margin: 0 0 1.2svh;
+    font-size: clamp(11px, 1.7vh, 14px); font-size: clamp(11px, 1.7svh, 14px);
+  }
+  /* Camera preview flexes with available height but never dominates a small
+     screen; capped so the slots + button always have room beneath it. */
+  .snap-card .snap-video {
+    max-width: none; width: auto; max-height: 38vh; max-height: 38svh; aspect-ratio: 4/3;
+    margin: 0 auto; flex: 0 1 auto; min-height: 120px;
+  }
+  /* Four slots in ONE row so the step stays short vertically. */
+  .snap-card .snap-grid {
+    grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 1.2vh 0; margin: 1.2svh 0;
+  }
+  .snap-card .snap-slot { padding: 6px; }
+  .snap-card .snap-slot .slot-label { font-size: clamp(9px, 1.4vh, 11.5px); font-size: clamp(9px, 1.4svh, 11.5px); margin: 4px 0 2px; line-height: 1.2; }
+  .snap-card .snap-slot .slot-empty { font-size: clamp(18px, 3vh, 26px); font-size: clamp(18px, 3svh, 26px); }
+  .snap-card .snap-retake { font-size: clamp(9px, 1.4vh, 11.5px); font-size: clamp(9px, 1.4svh, 11.5px); }
+  .snap-card .btn { padding: clamp(9px, 1.6vh, 14px); padding: clamp(9px, 1.6svh, 14px); font-size: clamp(13px, 1.9vh, 15px); font-size: clamp(13px, 1.9svh, 15px); }
+  /* On very narrow phones, 4 across gets cramped — drop to 2 x 2, still short. */
+  @media (max-width: 430px) {
+    .snap-card .snap-grid { grid-template-columns: repeat(2, 1fr); }
+    .snap-card .snap-video { max-height: 32vh; max-height: 32svh; }
+  }
+  .snap-retake { background: none; border: none; color: var(--gold-light); font-size: 11.5px; text-decoration: underline; cursor: pointer; padding: 2px; }
+
+  /* ---------- Bulk upload ---------- */
+  .bulk-instructions {
+    background: #EAF1F7; border-radius: 8px; padding: 14px 16px; font-size: 13px; color: var(--ink); margin-bottom: 14px; line-height: 1.6;
+  }
+  .bulk-instructions code { background: #fff; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+  .template-link { font-size: 12.5px; color: var(--navy); text-decoration: underline; cursor: pointer; background: none; border: none; padding: 0; font-weight: 600; }
+  .template-link:hover { color: var(--navy-mid); }
+  .file-row { display: flex; align-items: center; gap: 12px; margin: 14px 0; flex-wrap: wrap; }
+  input[type=file] { font-size: 13px; }
+  .preview-wrap { max-height: 260px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; margin: 12px 0; }
+  .preview-wrap table { font-size: 12.5px; }
+  .row-error { background: var(--danger-bg); }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+/* ============================================================
+   LAGOS STATE SCHOLARSHIP BOARD — CBT PLATFORM
+   Frontend application logic
+   Developed by PSSDC. Copyright (c) 2026.
+   ============================================================ */
+
+// ---------- CONFIG ----------
+// PSSDC logo, embedded so it renders with no external request or hosting.
+const APP_LOGO = 'data:image/png;base64,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';
+
+// Paste your deployed Google Apps Script Web App URL here after setup.
+const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbw3li3pLM9vOO75gW8wyFRwwpiO4QvOOqR1CTST3mAO3WG0Z0ddPVDdW7QrObCRHQ6u/exec';
+
+const RECORDING_CHUNK_SECONDS = 15;   // how often a video chunk is finalized and uploaded (kept short so each upload is small and survives weak connections)
+const ANSWER_SYNC_INTERVAL_MS = 20000; // batch-sync answers to backend every 20s
+const HEARTBEAT_INTERVAL_MS = 45000;
+// Candidate-conduct violations (tab switch, fullscreen exit, window blur) are
+// counted and logged so the examiner can weigh them when reviewing the sitting.
+// They carry NO automatic penalty for the candidate — recommended actions are
+// shown to the examiner in the monitoring view as a suggestion only, and every
+// decision (accept, review recording, invalidate, allow retake) belongs to the
+// examiner. Technical problems (e.g. recording upload failures) are logged
+// separately and never attributed to candidate conduct.
+const CONDUCT_VIOLATION_TYPES = ['tab_switch', 'fullscreen_exit', 'window_blur', 'left_window_frame', 'face_out_of_frame'];
+// Face detection: library + TinyFaceDetector weights (~190KB), each tried
+// across several independent sources so one CDN being down, blocked, or
+// filtered on a candidate's network cannot disable monitoring.
+// NOTE: cdnjs does NOT host face-api.js — do not add it here.
+// The npm package ships dist/face-api.min.js but NO weights, so the model
+// must come from the GitHub repo (raw.githubusercontent sends
+// access-control-allow-origin: *, so it works cross-origin).
+const FACE_LIB_URLS = [
+  'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js',
+  'https://unpkg.com/face-api.js@0.22.2/dist/face-api.min.js'
+];
+const FACE_MODEL_URLS = [
+  'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights',
+  'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/0.22.2/weights',
+  'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights'
+];
+let faceApiReadyPromise = null;
+let faceLibSource = '';
+let faceModelSource = '';
+
+// Bootstrap admin credential — lets you into the Admin panel before the
+// Apps Script backend is deployed or before setupSheetsAndFolders has been
+// run. Only used as a fallback when the real backend is unreachable or not
+// yet initialized; once the backend is live with real accounts, the normal
+// login path is always tried first and takes priority. Because this
+// password is visible in client-side source, don't rely on it for security
+// once this file is hosted somewhere reachable by people you don't trust —
+// treat it purely as a setup convenience, and it's meaningless as an
+// access control once real data exists (bootstrap mode can't touch any
+// backend data at all).
+const BOOTSTRAP_ADMIN_USERNAME = 'admin';
+const BOOTSTRAP_ADMIN_PASSWORD = 'Mifanet@2026Bootstrap';
+
+// ---------- TINY STATE STORE ----------
+const state = {
+  user: null,           // {userId, username, role, fullName}
+  currentView: 'login',
+  exam: null,
+  questions: [],
+  answers: {},          // questionId -> answer value
+  currentQuestionIndex: 0,
+  bootstrapMode: false,
+  bulkUserRows: [],
+  bulkQuestionRows: [],
+  serverRemainingSec: null,
+  isResumedSession: false,
+  gateStep: 'consent',        // 'consent' | 'snapshots'
+  snapshots: {},              // slot key -> JPEG data URL
+  geoPosition: null,          // {latitude, longitude, accuracy}
+  lastFrameLeaveAt: 0,
+  faceLost: false,
+  faceMisses: 0,
+  faceMonitorHandle: null,
+  faceDetectBusy: false,
+  timeRemainingSec: 0,
+  timerHandle: null,
+  syncHandle: null,
+  heartbeatHandle: null,
+  mediaStream: null,
+  mediaRecorder: null,
+  recordedChunks: [],
+  chunkIndex: 0,
+  recordingHealth: 'starting', // 'starting' | 'ok' | 'warning' | 'failed'
+  recordingFailCount: 0,
+  violationCount: 0,
+  examSubmitted: false
+};
+
+// ---------- API HELPER ----------
+async function apiGet(action, params) {
+  const url = new URL(API_BASE_URL);
+  url.searchParams.set('action', action);
+  Object.entries(params || {}).forEach(([k, v]) => url.searchParams.set(k, v));
+  const res = await fetch(url.toString());
+  return res.json();
+}
+
+// Stable identifier for THIS device/browser, persisted locally. Used to bind
+// an in-progress exam to the device that started it, so the same login
+// details cannot be used to sit the exam on several machines at once. It is
+// not sensitive — just a random tag to tell one device from another.
+function getDeviceId() {
+  const KEY = 'pssdc_device_id';
+  try {
+    let id = localStorage.getItem(KEY);
+    if (!id) {
+      id = 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 12);
+      localStorage.setItem(KEY, id);
+    }
+    return id;
+  } catch (e) {
+    // localStorage unavailable — fall back to a per-tab id (still distinguishes
+    // this browser instance from another during the session).
+    if (!window.__pssdcDeviceId) window.__pssdcDeviceId = 'dev_tab_' + Math.random().toString(36).slice(2, 12);
+    return window.__pssdcDeviceId;
+  }
+}
+
+function detectDevice() {
+  const ua = navigator.userAgent;
+  let os = 'Unknown OS';
+  if (/Windows NT 10/.test(ua)) os = 'Windows 10/11';
+  else if (/Windows NT/.test(ua)) os = 'Windows (older)';
+  else if (/Android/.test(ua)) os = 'Android';
+  else if (/iPhone|iPad|iPod/.test(ua)) os = 'iOS';
+  else if (/Mac OS X/.test(ua)) os = 'macOS';
+  else if (/Linux/.test(ua)) os = 'Linux';
+  let browser = 'Unknown browser';
+  if (/Edg\//.test(ua)) browser = 'Edge';
+  else if (/OPR\/|Opera/.test(ua)) browser = 'Opera';
+  else if (/Chrome\//.test(ua)) browser = 'Chrome';
+  else if (/Firefox\//.test(ua)) browser = 'Firefox';
+  else if (/Safari\//.test(ua)) browser = 'Safari';
+  return {
+    os, browser,
+    screen: `${window.screen.width}x${window.screen.height} @${window.devicePixelRatio || 1}x, viewport ${window.innerWidth}x${window.innerHeight}`,
+    userAgent: ua
+  };
+}
+
+// Fire-and-forget audit log — never blocks the user's action.
+function audit(event, detail, examId) {
+  const d = detectDevice();
+  const u = state.user || {};
+  apiPost('logAudit', {
+    userId: u.userId || '', username: u.username || '', role: u.role || '',
+    event, detail: detail || '', examId: examId || (state.exam ? state.exam.examId : ''),
+    os: d.os, browser: d.browser, screen: d.screen, userAgent: d.userAgent
+  }).catch(() => {});
+}
+
+async function apiPost(action, payload, timeoutMs) {
+  const controller = timeoutMs ? new AbortController() : null;
+  const timeoutHandle = timeoutMs ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  try {
+    const res = await fetch(API_BASE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight against Apps Script
+      body: JSON.stringify({ action, payload }),
+      signal: controller ? controller.signal : undefined
+    });
+    return res.json();
+  } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+  }
+}
+
+// ---------- LOCAL PERSISTENCE (local-first answers) ----------
+const LOCAL_KEY_PREFIX = 'lagoscbt_';
+
+function localSaveAnswers() {
+  if (!state.exam || !state.user) return;
+  const key = LOCAL_KEY_PREFIX + state.exam.examId + '_' + state.user.userId;
+  localStorage.setItem(key, JSON.stringify({
+    answers: state.answers,
+    timeRemainingSec: state.timeRemainingSec,
+    savedAt: Date.now()
+  }));
+}
+
+function localLoadAnswers() {
+  if (!state.exam || !state.user) return null;
+  const key = LOCAL_KEY_PREFIX + state.exam.examId + '_' + state.user.userId;
+  const raw = localStorage.getItem(key);
+  return raw ? JSON.parse(raw) : null;
+}
+
+// ---------- RENDER ROOT ----------
+function render() {
+  const app = document.getElementById('app');
+  if (state.user && state.currentView !== state._lastAuditedView) {
+    // Log movement within the app (view changes), skipping the transient
+    // permission-gate sub-steps to avoid noise.
+    if (state.currentView !== 'permissionGate') {
+      audit('navigate', 'Viewing: ' + state.currentView);
+    }
+    state._lastAuditedView = state.currentView;
+  }
+  if (state.currentView === 'login') { app.innerHTML = renderLogin(); attachLoginHandlers(); return; }
+
+  app.innerHTML = `
+    <div class="topbar">
+      <div class="brand">
+        <img class="crest" src="${APP_LOGO}" alt="PSSDC logo" />
+        <div class="brand-text">
+          <div class="t1">PSSDC</div>
+          <div class="t2">Computer Based Testing Platform</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <span class="role-pill">${state.user.role}</span>
+        <span>${state.user.fullName}</span>
+        <button class="btn-logout" id="logoutBtn">Log out</button>
+      </div>
+    </div>
+    <main id="mainContent"></main>
+    <div class="footer">
+      Developed by <strong>PSSDC</strong>. Copyright &copy; 2026.
+    </div>
+  `;
+  document.getElementById('logoutBtn').onclick = logout;
+
+  const main = document.getElementById('mainContent');
+  if (state.currentView === 'admin') { main.innerHTML = renderAdmin(); attachAdminHandlers(); }
+  else if (state.currentView === 'examiner') { main.innerHTML = renderExaminer(); attachExaminerHandlers(); }
+  else if (state.currentView === 'candidateHome') { main.innerHTML = renderCandidateHome(); attachCandidateHomeHandlers(); }
+  else if (state.currentView === 'permissionGate') { main.innerHTML = renderPermissionGate(); attachGateHandlers(); }
+  else if (state.currentView === 'exam') { main.innerHTML = renderExam(); attachExamHandlers(); }
+  else if (state.currentView === 'examSubmitted') { main.innerHTML = renderSubmitted(); }
+}
+
+// ---------- LOGIN ----------
+function renderLogin() {
+  return `
+    <div class="login-wrap">
+      <div class="login-card">
+        <img class="login-crest" src="${APP_LOGO}" alt="PSSDC logo" />
+        <div class="login-title">PSSDC</div>
+        <div class="login-sub">Computer Based Testing Platform</div>
+        <label>Username</label>
+        <input type="text" id="loginUsername" placeholder="Enter your username" />
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="Enter your password" />
+        <button class="btn btn-gold" id="loginBtn" style="width:100%;margin-top:20px;">Sign in</button>
+        <div id="loginError"></div>
+      </div>
+    </div>
+  `;
+}
+
+function attachLoginHandlers() {
+  document.getElementById('loginBtn').onclick = async () => {
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errEl = document.getElementById('loginError');
+    errEl.innerHTML = '';
+    if (!username || !password) {
+      errEl.innerHTML = '<div class="error-msg">Please enter both username and password.</div>';
+      return;
+    }
+    const isConfigured = API_BASE_URL && API_BASE_URL.indexOf('PASTE_YOUR') === -1;
+
+    // Try the real backend first, unless it's obviously still unconfigured.
+    if (isConfigured) {
+      try {
+        const result = await apiPost('login', { username, password });
+        if (result.success) {
+          state.user = result.user;
+          state.bootstrapMode = false;
+          audit('login', 'Signed in as ' + result.user.role);
+          routeToRoleHome();
+          return;
+        }
+        // Backend reachable but rejected — if it looks like Sheets aren't
+        // set up yet, fall through to bootstrap check; otherwise show the
+        // real error (e.g. genuinely wrong password for a real account).
+        const setupNotDone = /Sheet not found|Run setupSheetsAndFolders/i.test(result.error || '');
+        if (!setupNotDone) {
+          errEl.innerHTML = `<div class="error-msg">${result.error || 'Login failed.'}</div>`;
+          return;
+        }
+      } catch (e) {
+        // Network/deployment error — fall through to bootstrap check below.
+      }
+    }
+
+    // Bootstrap fallback: only for the admin account, only when the real
+    // backend wasn't configured, wasn't reachable, or hasn't been set up yet.
+    if (username === BOOTSTRAP_ADMIN_USERNAME && password === BOOTSTRAP_ADMIN_PASSWORD) {
+      state.user = { userId: 'bootstrap-admin', username: 'admin', role: 'admin', fullName: 'Administrator (Bootstrap Mode)' };
+      state.bootstrapMode = true;
+      audit('login', 'Bootstrap admin sign-in');
+      routeToRoleHome();
+      return;
+    }
+
+    errEl.innerHTML = isConfigured
+      ? `<div class="error-msg">Invalid username or password.</div>`
+      : `<div class="error-msg">Backend not configured yet (API_BASE_URL is still a placeholder), and these aren't the bootstrap admin credentials. See SETUP_GUIDE.md.</div>`;
+  };
+}
+
+function routeToRoleHome() {
+  if (state.user.role === 'admin') state.currentView = 'admin';
+  else if (state.user.role === 'examiner') state.currentView = 'examiner';
+  else state.currentView = 'candidateHome';
+  render();
+}
+
+function logout() {
+  audit('logout', 'Signed out');
+  stopAllTimers();
+  state.user = null;
+  state.currentView = 'login';
+  render();
+}
+
+// ---------- ADMIN VIEW ----------
+function renderAdmin() {
+  const banner = state.bootstrapMode ? `
+    <div class="card" style="border-color:var(--warn); background:var(--warn-bg);">
+      <h2 style="color:var(--warn);">Bootstrap mode — backend not connected</h2>
+      <div class="sub" style="color:var(--warn);">
+        You're viewing the Admin panel without a live backend. Nothing you create here
+        (users, exams, questions) will be saved until <strong>API_BASE_URL</strong> is set
+        to your deployed Apps Script URL and <strong>setupSheetsAndFolders</strong> has been
+        run at least once. See SETUP_GUIDE.md for the full walkthrough.
+      </div>
+    </div>` : '';
+
+  return `
+    ${banner}
+    <div class="grid-2">
+      <div class="card">
+        <h2>Create user account</h2>
+        <div class="sub">Add candidates, examiners, or administrators.</div>
+        <label>Full name</label>
+        <input type="text" id="newFullName" />
+        <label>Username</label>
+        <input type="text" id="newUsername" />
+        <label>Password</label>
+        <input type="password" id="newPassword" />
+        <label>Role</label>
+        <select id="newRole">
+          <option value="candidate">Candidate</option>
+          <option value="examiner">Examiner</option>
+          <option value="admin">Admin</option>
+        </select>
+        <button class="btn" id="createUserBtn" style="margin-top:16px;">Create account</button>
+        <div id="createUserMsg"></div>
+      </div>
+
+      <div class="card">
+        <h2>Create exam</h2>
+        <div class="sub">Set up a new timed test.</div>
+        <label>Exam title</label>
+        <input type="text" id="newExamTitle" placeholder="e.g. SS2 Mathematics — First Term" />
+        <label>Duration (minutes)</label>
+        <input type="number" id="newExamDuration" value="60" />
+        <button class="btn" id="createExamBtn" style="margin-top:16px;">Create exam</button>
+        <div id="createExamMsg"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Add question to exam</h2>
+      <div class="sub">Supported types: multiple choice, true/false, short answer, drag-and-drop ordering, matching pairs.</div>
+      <label>Exam ID</label>
+      <input type="text" id="qExamId" placeholder="Paste examId shown after creating an exam" />
+      <label>Question type</label>
+      <select id="qType">
+        <option value="mcq">Multiple choice</option>
+        <option value="truefalse">True / False</option>
+        <option value="shortanswer">Short answer</option>
+        <option value="dragdrop">Drag &amp; drop ordering</option>
+        <option value="matching">Matching pairs</option>
+      </select>
+      <label>Prompt</label>
+      <textarea id="qPrompt" placeholder="Enter the question text"></textarea>
+      <label>Options (one per line — for MCQ/drag-drop items/matching left column)</label>
+      <textarea id="qOptions" placeholder="Option A&#10;Option B&#10;Option C"></textarea>
+      <label>Correct answer</label>
+      <input type="text" id="qCorrect" placeholder="MCQ/True-False: exact option text. Drag-drop: comma-separated order. Matching: left=right pairs separated by semicolons." />
+      <label>Points</label>
+      <input type="number" id="qPoints" value="1" />
+      <button class="btn" id="addQuestionBtn" style="margin-top:16px;">Add question</button>
+      <div id="addQuestionMsg"></div>
+    </div>
+
+    <div class="card">
+      <h2>Bulk upload user accounts</h2>
+      <div class="sub">Upload many candidates, examiners, or admins at once — from a CSV/Notepad text file or an Excel workbook.</div>
+      <div class="bulk-instructions">
+        Columns required, in this order: <code>fullName, username, password, role</code><br>
+        <code>role</code> must be one of: <code>candidate</code>, <code>examiner</code>, <code>admin</code>.<br>
+        First row must be the header row exactly as above.
+        <br><button class="template-link" id="downloadUserTemplate">Download template (.csv)</button>
+      </div>
+      <div class="file-row">
+        <input type="file" id="userBulkFile" accept=".csv,.txt,.xlsx,.xls" />
+        <button class="btn btn-outline btn-sm" id="parseUserBulkBtn">Parse file</button>
+      </div>
+      <div id="userBulkPreview"></div>
+      <div id="userBulkMsg"></div>
+    </div>
+
+    <div class="card">
+      <h2>Bulk upload exam questions</h2>
+      <div class="sub">Load an entire question bank for an exam at once — from a CSV/Notepad text file or an Excel workbook.</div>
+      <div class="bulk-instructions">
+        Columns required, in this order: <code>examId, type, prompt, options, correctAnswer, points, order</code><br>
+        <code>type</code> is one of: <code>mcq</code>, <code>truefalse</code>, <code>shortanswer</code>, <code>dragdrop</code>, <code>matching</code>.<br>
+        <code>options</code>: separate multiple choices with a semicolon, e.g. <code>Lagos;Abuja;Kano</code>. Leave blank for short answer.<br>
+        <code>correctAnswer</code> — MCQ/True-False: exact option text. Drag-drop: correct order, semicolon-separated. Matching: pairs as <code>left=right</code>, semicolon-separated, e.g. <code>Lagos=Nigeria;Accra=Ghana</code>. Short answer: leave blank (examiner-graded).<br>
+        <code>points</code>: whole number. <code>order</code>: whole number controlling question sequence (e.g. 1, 2, 3…).<br>
+        First row must be the header row exactly as above.
+        <br><button class="template-link" id="downloadQuestionTemplate">Download template (.csv)</button>
+      </div>
+      <div class="file-row">
+        <input type="file" id="questionBulkFile" accept=".csv,.txt,.xlsx,.xls" />
+        <button class="btn btn-outline btn-sm" id="parseQuestionBulkBtn">Parse file</button>
+      </div>
+      <div id="questionBulkPreview"></div>
+      <div id="questionBulkMsg"></div>
+    </div>
+
+    <div class="card">
+      <h2>Audit report</h2>
+      <div class="sub">Every access and action across the app — sign-ins/outs, device &amp; OS, in-app movement, exam start/submit, and lockdown breach attempts. Newest first.</div>
+      <button class="btn" id="loadAuditBtn" style="margin-top:6px;">Load audit report</button>
+      <button class="btn btn-outline btn-sm" id="downloadAuditBtn" style="margin-top:6px; margin-left:8px;">Download audit (CSV)</button>
+      <div id="auditResults" style="margin-top:14px;"></div>
+    </div>
+
+    <div class="card">
+      <h2>Assign candidate to exam</h2>
+      <label>Exam ID</label>
+      <input type="text" id="assignExamId" />
+      <label>Candidate user ID</label>
+      <input type="text" id="assignCandidateId" placeholder="Paste candidate's userId" />
+      <button class="btn btn-outline" id="assignBtn" style="margin-top:16px;">Assign</button>
+      <div id="assignMsg"></div>
+    </div>
+
+    <div class="card">
+      <h2>Bulk upload exam allocations</h2>
+      <div class="sub">Allocate many candidates to an exam at once — from a CSV/Notepad text file or an Excel workbook.</div>
+      <div class="bulk-instructions">
+        Columns required, in this order: <code>examId, candidateId</code><br>
+        <code>candidateId</code> may be either the candidate's <code>userId</code> <em>or</em> their <code>username</code> — usernames are matched automatically.<br>
+        Duplicate allocations and unknown exams/candidates are skipped and reported, never failing the whole batch.
+        <br><button class="template-link" id="downloadAssignTemplate">Download template (.csv)</button>
+      </div>
+      <div class="file-row">
+        <input type="file" id="assignBulkFile" accept=".csv,.txt,.xlsx,.xls" />
+        <button class="btn btn-outline btn-sm" id="parseAssignBulkBtn">Parse file</button>
+      </div>
+      <div id="assignBulkPreview"></div>
+      <div id="assignBulkMsg"></div>
+    </div>
+
+    <div class="card">
+      <h2>Reallocate exam attempt</h2>
+      <div class="sub">Once a candidate submits an exam, they cannot retake it. Use this to clear a completed attempt and allow them to sit the exam again.</div>
+      <label>Exam ID</label>
+      <input type="text" id="resetExamId" />
+      <label>Candidate user ID</label>
+      <input type="text" id="resetCandidateId" placeholder="Paste candidate's userId" />
+      <button class="btn btn-outline" id="resetAttemptBtn" style="margin-top:16px;">Allow retake</button>
+      <div id="resetAttemptMsg"></div>
+    </div>
+  `;
+}
+
+function attachAdminHandlers() {
+  document.getElementById('createUserBtn').onclick = async () => {
+    const payload = {
+      fullName: val('newFullName'), username: val('newUsername'),
+      password: val('newPassword'), role: val('newRole')
+    };
+    if (!payload.fullName || !payload.username || !payload.password) {
+      msg('createUserMsg', 'All fields are required.', true); return;
+    }
+    const r = await apiPost('createUser', payload);
+    msg('createUserMsg', r.success ? `Account created. User ID: ${r.userId}` : r.error, !r.success);
+  };
+
+  document.getElementById('createExamBtn').onclick = async () => {
+    const title = val('newExamTitle'), durationMinutes = Number(val('newExamDuration'));
+    if (!title || !durationMinutes) { msg('createExamMsg', 'Title and duration are required.', true); return; }
+    const r = await apiPost('createExam', { title, durationMinutes, createdBy: state.user.userId });
+    msg('createExamMsg', r.success ? `Exam created. Exam ID: ${r.examId}` : r.error, !r.success);
+  };
+
+  document.getElementById('addQuestionBtn').onclick = async () => {
+    const examId = val('qExamId'), type = val('qType'), prompt = val('qPrompt');
+    const optionsRaw = val('qOptions').split('\n').map(s => s.trim()).filter(Boolean);
+    const correctRaw = val('qCorrect');
+    const points = Number(val('qPoints')) || 1;
+    if (!examId || !prompt) { msg('addQuestionMsg', 'Exam ID and prompt are required.', true); return; }
+
+    let correctAnswer = correctRaw;
+    if (type === 'dragdrop') correctAnswer = correctRaw.split(',').map(s => s.trim()).filter(Boolean);
+    if (type === 'matching') {
+      const pairs = {};
+      correctRaw.split(';').filter(Boolean).forEach(pairStr => {
+        const eq = pairStr.indexOf('=');
+        if (eq > -1) pairs[pairStr.slice(0, eq).trim()] = pairStr.slice(eq + 1).trim();
+      });
+      correctAnswer = pairs;
+      if (!Object.keys(pairs).length) { msg('addQuestionMsg', 'Matching correctAnswer must use left=right pairs separated by semicolons.', true); return; }
+    }
+
+    const r = await apiPost('addQuestion', {
+      examId, type, prompt, options: optionsRaw, correctAnswer, points,
+      order: Date.now()
+    });
+    msg('addQuestionMsg', r.success ? `Question added (${r.questionId}).` : r.error, !r.success);
+  };
+
+  document.getElementById('assignBtn').onclick = async () => {
+    const examId = val('assignExamId'), candidateId = val('assignCandidateId');
+    if (!examId || !candidateId) { msg('assignMsg', 'Both fields are required.', true); return; }
+    const r = await apiPost('assignCandidate', { examId, candidateId });
+    msg('assignMsg', r.success ? 'Candidate assigned.' : r.error, !r.success);
+  };
+
+  document.getElementById('resetAttemptBtn').onclick = async () => {
+    const examId = val('resetExamId'), candidateId = val('resetCandidateId');
+    if (!examId || !candidateId) { msg('resetAttemptMsg', 'Both fields are required.', true); return; }
+    const r = await apiPost('resetCandidateAttempt', { examId, candidateId });
+    msg('resetAttemptMsg', r.success ? r.message : r.error, !r.success);
+  };
+
+  let auditCache = null;
+  document.getElementById('loadAuditBtn').onclick = async () => {
+    const box = document.getElementById('auditResults');
+    box.innerHTML = '<div class="empty-state">Loading…</div>';
+    const r = await apiGet('getAuditReport', { limit: 500 });
+    auditCache = r;
+    if (!r.success || !r.audit || !r.audit.length) { box.innerHTML = '<div class="empty-state">No audit records yet.</div>'; return; }
+
+    let html = '<h3 style="margin:6px 0; font-size:14px;">Per-user sessions (time in → out)</h3>';
+    html += '<div class="preview-wrap"><table><tr><th>User</th><th>Role</th><th>Time in</th><th>Last activity</th><th>OS</th><th>Browser</th><th>Events</th></tr>';
+    (r.sessions || []).forEach(s => {
+      html += `<tr>
+        <td>${escapeHtml((s.username || s.userId) || '—')}</td>
+        <td>${escapeHtml(s.role || '—')}</td>
+        <td>${s.timeIn ? new Date(s.timeIn).toLocaleString() : '—'}</td>
+        <td>${s.timeOut ? new Date(s.timeOut).toLocaleString() : '—'}</td>
+        <td>${escapeHtml(s.os || '—')}</td>
+        <td>${escapeHtml(s.browser || '—')}</td>
+        <td>${s.events}</td>
+      </tr>`;
+    });
+    html += '</table></div>';
+
+    html += '<h3 style="margin:14px 0 6px; font-size:14px;">Full event log (newest first, latest 500)</h3>';
+    html += '<div class="preview-wrap"><table><tr><th>Time</th><th>User</th><th>Role</th><th>Event</th><th>Detail</th><th>OS</th><th>Browser</th></tr>';
+    r.audit.forEach(a => {
+      html += `<tr>
+        <td>${a.timestamp ? new Date(a.timestamp).toLocaleString() : '—'}</td>
+        <td>${escapeHtml((a.username || a.userId) || '—')}</td>
+        <td>${escapeHtml(a.role || '—')}</td>
+        <td>${escapeHtml(a.event || '—')}</td>
+        <td>${escapeHtml(a.detail || '—')}</td>
+        <td>${escapeHtml(a.os || '—')}</td>
+        <td>${escapeHtml(a.browser || '—')}</td>
+      </tr>`;
+    });
+    html += '</table></div>';
+    box.innerHTML = html;
+  };
+
+  document.getElementById('downloadAuditBtn').onclick = async () => {
+    let r = auditCache;
+    if (!r) r = await apiGet('getAuditReport', { limit: 5000 });
+    if (!r.success || !r.audit || !r.audit.length) { msg('resetAttemptMsg', 'No audit records to download.', true); return; }
+    const header = ['timestamp', 'userId', 'username', 'role', 'event', 'detail', 'examId', 'os', 'browser', 'screen', 'userAgent'];
+    const lines = [header.join(',')];
+    r.audit.forEach(a => lines.push(header.map(h => csvEscape(a[h] !== undefined ? a[h] : '')).join(',')));
+    downloadCSV('audit_report.csv', lines.join('\n'));
+  };
+
+  // ---- Bulk exam allocation upload ----
+  document.getElementById('downloadAssignTemplate').onclick = () => {
+    downloadCSV('exam_allocation_template.csv',
+      'examId,candidateId\nexam_abc123,user_bee46895\nexam_abc123,adaeze.okonkwo');
+  };
+
+  document.getElementById('parseAssignBulkBtn').onclick = async () => {
+    const fileInput = document.getElementById('assignBulkFile');
+    const previewEl = document.getElementById('assignBulkPreview');
+    const msgEl = document.getElementById('assignBulkMsg');
+    msgEl.innerHTML = '';
+    if (!fileInput.files.length) { msg('assignBulkMsg', 'Choose a file first.', true); return; }
+    try {
+      const rawRows = await parseUploadedFile(fileInput.files[0]);
+      const { valid, errors } = normalizeAssignmentRows(rawRows);
+      previewEl.innerHTML = renderPreviewTable(
+        ['examId', 'candidateId'], valid, errors,
+        valid.length ? `<button class="btn btn-gold btn-sm" id="confirmAssignBulkBtn">Allocate ${valid.length} candidate(s)</button>` : ''
+      );
+      if (valid.length) {
+        document.getElementById('confirmAssignBulkBtn').onclick = async () => {
+          msg('assignBulkMsg', 'Allocating…', false);
+          const r = await apiPost('assignCandidatesBulk', { assignments: valid });
+          const skippedNote = r.success && r.skipped && r.skipped.length
+            ? ` ${r.skipped.length} skipped: ` + r.skipped.slice(0, 5).map(s => s.reason).join('; ') + (r.skipped.length > 5 ? '; …' : '')
+            : '';
+          msg('assignBulkMsg', r.success ? `${r.created} allocation(s) created.${skippedNote}` : (r.error || 'Allocation failed.'), !r.success);
+          if (r.success) { previewEl.innerHTML = ''; fileInput.value = ''; }
+        };
+      }
+    } catch (e) {
+      msg('assignBulkMsg', 'Could not parse that file: ' + e.message, true);
+    }
+  };
+
+  // ---- Bulk user upload ----
+  document.getElementById('downloadUserTemplate').onclick = () => {
+    downloadCSV('user_upload_template.csv',
+      'fullName,username,password,role\nAdaeze Okonkwo,adaeze.okonkwo,TempPass123!,candidate\nTunde Bello,tunde.bello,TempPass123!,examiner');
+  };
+
+  document.getElementById('parseUserBulkBtn').onclick = async () => {
+    const fileInput = document.getElementById('userBulkFile');
+    const previewEl = document.getElementById('userBulkPreview');
+    const msgEl = document.getElementById('userBulkMsg');
+    msgEl.innerHTML = '';
+    if (!fileInput.files.length) { msg('userBulkMsg', 'Choose a file first.', true); return; }
+    try {
+      const rawRows = await parseUploadedFile(fileInput.files[0]);
+      const { valid, errors } = normalizeUserRows(rawRows);
+      state.bulkUserRows = valid;
+      previewEl.innerHTML = renderPreviewTable(
+        ['fullName', 'username', 'password', 'role'], valid, errors,
+        valid.length ? `<button class="btn btn-gold btn-sm" id="confirmUserBulkBtn">Upload ${valid.length} account(s)</button>` : ''
+      );
+      if (valid.length) {
+        document.getElementById('confirmUserBulkBtn').onclick = async () => {
+          msg('userBulkMsg', 'Uploading…', false);
+          const r = await apiPost('createUsersBulk', { users: valid });
+          const skippedNote = r.success && r.skipped && r.skipped.length ? ` ${r.skipped.length} skipped (duplicate username or missing field).` : '';
+          msg('userBulkMsg', r.success ? `${r.created} account(s) created.${skippedNote}` : (r.error || 'Upload failed.'), !r.success);
+          if (r.success) { previewEl.innerHTML = ''; fileInput.value = ''; }
+        };
+      }
+    } catch (e) {
+      msg('userBulkMsg', 'Could not parse that file: ' + e.message, true);
+    }
+  };
+
+  // ---- Bulk question upload ----
+  document.getElementById('downloadQuestionTemplate').onclick = () => {
+    downloadCSV('question_upload_template.csv',
+      'examId,type,prompt,options,correctAnswer,points,order\n' +
+      'exam_abc123,mcq,What is the capital of Nigeria?,Lagos;Abuja;Kano;Ibadan,Abuja,1,1\n' +
+      'exam_abc123,truefalse,Lagos is the capital of Nigeria.,,False,1,2\n' +
+      'exam_abc123,shortanswer,Briefly explain federalism.,,,2,3\n' +
+      'exam_abc123,dragdrop,Arrange in chronological order.,Independence;Civil War;Return to Democracy,Independence;Civil War;Return to Democracy,2,4\n' +
+      'exam_abc123,matching,Match each city to its country.,Lagos;Accra;Nairobi,Lagos=Nigeria;Accra=Ghana;Nairobi=Kenya,3,5'
+    );
+  };
+
+  document.getElementById('parseQuestionBulkBtn').onclick = async () => {
+    const fileInput = document.getElementById('questionBulkFile');
+    const previewEl = document.getElementById('questionBulkPreview');
+    const msgEl = document.getElementById('questionBulkMsg');
+    msgEl.innerHTML = '';
+    if (!fileInput.files.length) { msg('questionBulkMsg', 'Choose a file first.', true); return; }
+    try {
+      const rawRows = await parseUploadedFile(fileInput.files[0]);
+      const { valid, errors } = normalizeQuestionRows(rawRows);
+      state.bulkQuestionRows = valid;
+      previewEl.innerHTML = renderPreviewTable(
+        ['examId', 'type', 'prompt', 'points', 'order'], valid, errors,
+        valid.length ? `<button class="btn btn-gold btn-sm" id="confirmQuestionBulkBtn">Upload ${valid.length} question(s)</button>` : ''
+      );
+      if (valid.length) {
+        document.getElementById('confirmQuestionBulkBtn').onclick = async () => {
+          msg('questionBulkMsg', 'Uploading…', false);
+          const r = await apiPost('addQuestionsBulk', { questions: valid });
+          msg('questionBulkMsg', r.success ? `${r.created} question(s) added.` : (r.error || 'Upload failed.'), !r.success);
+          if (r.success) { previewEl.innerHTML = ''; fileInput.value = ''; }
+        };
+      }
+    } catch (e) {
+      msg('questionBulkMsg', 'Could not parse that file: ' + e.message, true);
+    }
+  };
+}
+
+// ---------- BULK UPLOAD HELPERS ----------
+
+function downloadCSV(filename, csvText) {
+  const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsText(file);
+  });
+}
+
+function readFileAsArrayBuffer(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// Returns an array of row objects keyed by header name, from either a
+// CSV/Notepad text file or an Excel (.xlsx/.xls) workbook's first sheet.
+async function parseUploadedFile(file) {
+  const isExcel = /\.xlsx$|\.xls$/i.test(file.name);
+  if (isExcel) {
+    if (typeof XLSX === 'undefined') throw new Error('Excel parser did not load — check your internet connection and reload the page.');
+    const buffer = await readFileAsArrayBuffer(file);
+    const workbook = XLSX.read(buffer, { type: 'array' });
+    const firstSheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[firstSheetName];
+    return XLSX.utils.sheet_to_json(sheet, { defval: '' });
+  }
+  const text = await readFileAsText(file);
+  return parseCSVText(text);
+}
+
+// Minimal CSV parser supporting quoted fields containing commas.
+function parseCSVText(text) {
+  const lines = text.split(/\r\n|\n|\r/).filter(l => l.trim().length > 0);
+  if (!lines.length) return [];
+  const parseLine = (line) => {
+    const cells = [];
+    let cur = '', inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQuotes) {
+        if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+        else if (ch === '"') { inQuotes = false; }
+        else cur += ch;
+      } else {
+        if (ch === '"') inQuotes = true;
+        else if (ch === ',') { cells.push(cur); cur = ''; }
+        else cur += ch;
+      }
+    }
+    cells.push(cur);
+    return cells.map(c => c.trim());
+  };
+  const headers = parseLine(lines[0]).map(h => h.trim());
+  return lines.slice(1).map(line => {
+    const cells = parseLine(line);
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = cells[i] !== undefined ? cells[i] : ''; });
+    return obj;
+  });
+}
+
+function normalizeAssignmentRows(rawRows) {
+  const valid = [], errors = [];
+  rawRows.forEach((row, idx) => {
+    const examId = String(row.examId || '').trim();
+    const candidateId = String(row.candidateId || '').trim();
+    const rowErrors = [];
+    if (!examId) rowErrors.push('missing examId');
+    if (!candidateId) rowErrors.push('missing candidateId');
+    if (rowErrors.length) errors.push({ rowNumber: idx + 2, issues: rowErrors, raw: row });
+    else valid.push({ examId, candidateId });
+  });
+  return { valid, errors };
+}
+
+function normalizeUserRows(rawRows) {
+  const valid = [], errors = [];
+  const allowedRoles = ['candidate', 'examiner', 'admin'];
+  rawRows.forEach((row, idx) => {
+    const fullName = String(row.fullName || '').trim();
+    const username = String(row.username || '').trim();
+    const password = String(row.password || '').trim();
+    const role = String(row.role || '').trim().toLowerCase();
+    const rowErrors = [];
+    if (!fullName) rowErrors.push('missing fullName');
+    if (!username) rowErrors.push('missing username');
+    if (!password) rowErrors.push('missing password');
+    if (!allowedRoles.includes(role)) rowErrors.push(`invalid role "${role}"`);
+    if (rowErrors.length) errors.push({ rowNumber: idx + 2, issues: rowErrors, raw: row });
+    else valid.push({ fullName, username, password, role });
+  });
+  return { valid, errors };
+}
+
+function normalizeQuestionRows(rawRows) {
+  const valid = [], errors = [];
+  const allowedTypes = ['mcq', 'truefalse', 'shortanswer', 'dragdrop', 'matching'];
+  rawRows.forEach((row, idx) => {
+    const examId = String(row.examId || '').trim();
+    const type = String(row.type || '').trim().toLowerCase();
+    const prompt = String(row.prompt || '').trim();
+    const optionsRaw = String(row.options || '').trim();
+    const correctRaw = String(row.correctAnswer || '').trim();
+    const points = Number(row.points) || 1;
+    const order = Number(row.order) || (idx + 1);
+    const rowErrors = [];
+    if (!examId) rowErrors.push('missing examId');
+    if (!allowedTypes.includes(type)) rowErrors.push(`invalid type "${type}"`);
+    if (!prompt) rowErrors.push('missing prompt');
+
+    const options = optionsRaw ? optionsRaw.split(';').map(s => s.trim()).filter(Boolean) : [];
+    let correctAnswer = correctRaw;
+    if (type === 'dragdrop') correctAnswer = correctRaw ? correctRaw.split(';').map(s => s.trim()) : [];
+    if (type === 'matching') {
+      const pairs = {};
+      correctRaw.split(';').filter(Boolean).forEach(pairStr => {
+        const eq = pairStr.indexOf('=');
+        if (eq > -1) pairs[pairStr.slice(0, eq).trim()] = pairStr.slice(eq + 1).trim();
+      });
+      correctAnswer = pairs;
+      if (!Object.keys(pairs).length) rowErrors.push('matching correctAnswer must use left=right pairs separated by ;');
+    }
+    if ((type === 'mcq' || type === 'dragdrop' || type === 'matching') && options.length < 2) {
+      rowErrors.push('needs at least 2 options');
+    }
+
+    if (rowErrors.length) errors.push({ rowNumber: idx + 2, issues: rowErrors, raw: row });
+    else valid.push({ examId, type, prompt, options, correctAnswer, points, order });
+  });
+  return { valid, errors };
+}
+
+function renderPreviewTable(columns, validRows, errors, actionHtml) {
+  let html = '<div class="preview-wrap"><table><tr>' + columns.map(c => `<th>${c}</th>`).join('') + '<th>Status</th></tr>';
+  validRows.forEach(row => {
+    html += '<tr>' + columns.map(c => `<td>${escapeHtml(Array.isArray(row[c]) ? row[c].join('; ') : (typeof row[c] === 'object' ? JSON.stringify(row[c]) : row[c]))}</td>`).join('') + '<td><span class="badge badge-ok">Ready</span></td></tr>';
+  });
+  errors.forEach(err => {
+    html += `<tr class="row-error">` + columns.map(c => `<td>${escapeHtml(err.raw[c] !== undefined ? err.raw[c] : '')}</td>`).join('') + `<td><span class="badge badge-danger">Row ${err.rowNumber}: ${err.issues.join(', ')}</span></td></tr>`;
+  });
+  html += '</table></div>';
+  html += `<div class="sub">${validRows.length} row(s) ready to upload${errors.length ? `, ${errors.length} row(s) with errors (will be skipped)` : ''}.</div>`;
+  html += actionHtml;
+  return html;
+}
+
+function val(id) { return document.getElementById(id).value.trim(); }
+function msg(id, text, isError) {
+  document.getElementById(id).innerHTML = `<div class="${isError ? 'error-msg' : 'error-msg'}" style="${isError ? '' : 'background:var(--success-bg);color:var(--success);'}">${text}</div>`;
+}
+
+// ---------- EXAMINER VIEW ----------
+function renderExaminer() {
+  return `
+    <div class="card">
+      <h2>Monitor exam</h2>
+      <div class="sub">Enter an exam ID to view every exam taker's status, score, and proctoring record — with a suggested action for each. All suggestions are advisory only; the decision on any sitting rests with you as the examiner.</div>
+      <label>Exam ID</label>
+      <input type="text" id="monitorExamId" />
+      <button class="btn" id="loadMonitorBtn" style="margin-top:14px;">Load</button>
+    </div>
+    <div id="monitorResults"></div>
+  `;
+}
+
+// Advisory tiers only — surfaced to help the examiner triage, never enforced
+// by the system. The examiner decides the actual outcome for every sitting.
+function recommendedAction(conductCount) {
+  if (conductCount === 0) return { label: 'None', cls: 'badge-ok' };
+  if (conductCount <= 2) return { label: 'Note on record', cls: 'badge-ok' };
+  if (conductCount <= 5) return { label: 'Review recording before ratifying result', cls: 'badge-warn' };
+  return { label: 'Detailed review — consider invalidation or supervised retake', cls: 'badge-danger' };
+}
+
+function csvEscape(value) {
+  const s = String(value === undefined || value === null ? '' : value);
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function attachExaminerHandlers() {
+  document.getElementById('loadMonitorBtn').onclick = async () => {
+    const examId = val('monitorExamId');
+    if (!examId) return;
+    const resultsBody = document.getElementById('monitorResults');
+    resultsBody.innerHTML = '<div class="card"><div class="empty-state">Loading…</div></div>';
+
+    const [reportRes, violationsRes, recordingsRes, snapshotsRes] = await Promise.all([
+      apiGet('getExamReport', { examId }),
+      apiGet('getViolations', { examId }),
+      apiGet('getExamRecordings', { examId }),
+      apiGet('getExamSnapshotFiles', { examId })
+    ]);
+
+    // One shared candidate-name map, from the report (covers every candidate,
+    // including any with snapshots but no recordings yet).
+    const nameByCidGlobal = {};
+    (reportRes.report || []).forEach(r => { nameByCidGlobal[r.candidateId] = r.fullName || ''; });
+    (recordingsRes.recordings || []).forEach(r => {
+      if (!nameByCidGlobal[r.candidateId]) nameByCidGlobal[r.candidateId] = r.fullName || '';
+    });
+
+    let html = '<div class="card"><h2>Exam takers</h2>';
+    if (reportRes.success && reportRes.report && reportRes.report.length) {
+      html += `<div class="sub"><strong>Passed</strong> is questions correct out of the exam's total question count; <strong>Failed</strong> counts auto-marked questions answered wrongly or left unanswered. Examiner-graded questions (e.g. short answer) are excluded from both and shown as <code>questionsPendingManual</code> in the CSV. "Suggested action" is advisory, based on the count of conduct flags — the decision on every sitting is yours. Technical issues (e.g. recording upload problems) are the platform's responsibility, not the candidate's, and carry no suggested action.</div>`;
+      html += '<button class="btn btn-gold btn-sm" id="downloadReportBtn" style="margin-bottom:14px;">Download all exam takers (CSV)</button>';
+      html += '<table><tr><th>Candidate</th><th>Status</th><th>Passed</th><th>Failed</th><th>%</th><th>Answered</th><th>Conduct flags</th><th>Technical issues</th><th>Location</th><th>Suggested action</th></tr>';
+      reportRes.report.forEach(r => {
+        const rec = recommendedAction(Number(r.conductViolations) || 0);
+        const name = r.fullName ? `${r.fullName} (${r.candidateId})` : r.candidateId;
+        const loc = r.locationName
+          ? r.locationName
+          : (r.latitude !== '' && r.latitude !== undefined && r.latitude !== null && r.longitude !== '' ? `${r.latitude}, ${r.longitude}` : '—');
+        html += `<tr>
+          <td>${escapeHtml(name)}</td>
+          <td><span class="badge ${r.status === 'submitted' ? 'badge-ok' : (r.status === 'in_progress' ? 'badge-warn' : 'badge-danger')}">${escapeHtml(r.status)}</span></td>
+          <td>${r.score} / ${r.maxScore}</td>
+          <td>${r.questionsFailed !== undefined ? r.questionsFailed : '—'}</td>
+          <td>${r.percentScore !== '' && r.percentScore !== undefined ? r.percentScore + '%' : '—'}</td>
+          <td>${r.answered}</td>
+          <td>${r.conductViolations}</td>
+          <td>${r.technicalIssues}</td>
+          <td>${escapeHtml(String(loc))}</td>
+          <td><span class="badge ${rec.cls}">${escapeHtml(rec.label)}</span></td>
+        </tr>`;
+      });
+      html += '</table>';
+    } else {
+      html += '<div class="empty-state">No exam takers recorded for this exam yet.</div>';
+    }
+    html += '</div>';
+
+    html += '<div class="card"><h2>Proctoring recordings</h2>';
+    if (recordingsRes.success && recordingsRes.recordings && recordingsRes.recordings.length) {
+      html += `<div class="sub">All candidates' full session recordings for this exam, downloaded as ONE ZIP file directly — no Google Drive visit needed. Inside the ZIP, every candidate has their own folder containing their segments. Large exams have many segments, so allow the progress counter to finish.</div>`;
+      html += '<button class="btn btn-gold btn-sm" id="downloadAllRecBtn" style="margin-bottom:14px;">Download ALL recordings for this exam (ZIP)</button>';
+      html += '<table><tr><th>Candidate</th><th>Segments</th><th>Recorded from</th><th>Until</th></tr>';
+      recordingsRes.recordings.forEach(rec => {
+        const name = rec.fullName ? `${rec.fullName} (${rec.candidateId})` : rec.candidateId;
+        html += `<tr>
+          <td>${escapeHtml(name)}</td>
+          <td>${rec.chunkCount}</td>
+          <td>${rec.firstAt ? new Date(rec.firstAt).toLocaleString() : '—'}</td>
+          <td>${rec.lastAt ? new Date(rec.lastAt).toLocaleString() : '—'}</td>
+        </tr>`;
+      });
+      html += '</table>';
+    } else {
+      html += '<div class="empty-state">No recordings found for this exam yet.</div>';
+    }
+    html += '</div>';
+
+    html += '<div class="card"><h2>Pre-exam snapshots</h2>';
+    if (snapshotsRes.success && snapshotsRes.files && snapshotsRes.files.length) {
+      const byCand = {};
+      snapshotsRes.files.forEach(f => {
+        if (!byCand[f.candidateId]) byCand[f.candidateId] = [];
+        byCand[f.candidateId].push(String(f.type).replace('snapshot_', ''));
+      });
+      html += `<div class="sub">The face, back-of-system, right-side and left-side photos each candidate captured before their exam. Click below to download them all as ONE ZIP, with a folder per candidate.</div>`;
+      html += '<button class="btn btn-gold btn-sm" id="downloadAllSnapsBtn" style="margin-bottom:14px;">Download ALL snapshots for this exam (ZIP)</button>';
+      html += '<table><tr><th>Candidate</th><th>Snapshots</th><th>Captured</th></tr>';
+      Object.keys(byCand).sort().forEach(cid => {
+        const nm = nameByCidGlobal[cid] ? `${nameByCidGlobal[cid]} (${cid})` : cid;
+        const kinds = byCand[cid].join(', ');
+        html += `<tr><td>${escapeHtml(nm)}</td><td>${byCand[cid].length} of 4</td><td>${escapeHtml(kinds)}</td></tr>`;
+      });
+      html += '</table>';
+    } else {
+      html += '<div class="empty-state">No snapshots found for this exam yet.</div>';
+    }
+    html += '</div>';
+
+    html += '<div class="card"><h2>Violation log (detail)</h2>';
+    if (violationsRes.success && violationsRes.violations.length) {
+      html += '<table><tr><th>Candidate</th><th>Type</th><th>Detail</th><th>Time</th></tr>';
+      violationsRes.violations.forEach(v => {
+        html += `<tr><td>${escapeHtml(v.candidateId)}</td><td><span class="badge badge-warn">${escapeHtml(v.type)}</span></td><td>${escapeHtml(v.detail || '—')}</td><td>${new Date(v.timestamp).toLocaleString()}</td></tr>`;
+      });
+      html += '</table>';
+    } else {
+      html += '<div class="empty-state">No violations recorded.</div>';
+    }
+    html += '</div>';
+    resultsBody.innerHTML = html;
+
+    const dlBtn = document.getElementById('downloadReportBtn');
+    if (dlBtn) {
+      dlBtn.onclick = () => {
+        const qLabels = (reportRes.questionKey || []).map(k => k.label);
+        const header = ['candidateId', 'fullName', 'username', 'status', 'startedAt', 'endedAt', 'score', 'maxScore', 'questionsFailed', 'questionsPendingManual', 'percentScore', 'pointsEarned', 'pointsPossible', 'answered', 'conductViolations', 'technicalIssues', 'suggestedAction', 'latitude', 'longitude', 'locationName'].concat(qLabels);
+        const lines = [header.join(',')];
+        reportRes.report.forEach(r => {
+          const rec = recommendedAction(Number(r.conductViolations) || 0);
+          const perQ = qLabels.map(l => (r.perQuestion && r.perQuestion[l] !== undefined) ? r.perQuestion[l] : '');
+          lines.push([
+            r.candidateId, r.fullName, r.username, r.status, r.startedAt, r.endedAt,
+            r.score, r.maxScore, r.questionsFailed, r.questionsPendingManual, r.percentScore,
+            r.pointsEarned, r.pointsPossible, r.answered, r.conductViolations, r.technicalIssues, rec.label,
+            r.latitude, r.longitude, r.locationName
+          ].concat(perQ).map(csvEscape).join(','));
+        });
+        downloadCSV(`exam_report_${examId}.csv`, lines.join('\n'));
+      };
+    }
+
+    // Exam-wide ZIP of every candidate's recordings, one folder each
+    const allRecBtn = document.getElementById('downloadAllRecBtn');
+    if (allRecBtn) {
+      allRecBtn.onclick = () => downloadExamRecordingsZip(examId, nameByCidGlobal, allRecBtn);
+    }
+
+    // Exam-wide ZIP of every candidate's pre-exam snapshots, one folder each
+    const allSnapsBtn = document.getElementById('downloadAllSnapsBtn');
+    if (allSnapsBtn) {
+      allSnapsBtn.onclick = () => downloadExamSnapshotsZip(examId, nameByCidGlobal, allSnapsBtn);
+    }
+  };
+}
+
+function base64WebSafeToUint8(b64) {
+  let s = b64.replace(/-/g, '+').replace(/_/g, '/');
+  while (s.length % 4) s += '=';
+  const bin = atob(s);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+// Fetches every pre-exam snapshot for the WHOLE exam through the backend API
+// and assembles one ZIP with a folder per candidate. Snapshots are small
+// JPEGs, so this is far quicker than the recordings ZIP.
+async function downloadExamSnapshotsZip(examId, nameByCid, btn) {
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  try {
+    if (typeof JSZip === 'undefined') throw new Error('ZIP library did not load — check the internet connection and reload the page.');
+
+    btn.textContent = 'Fetching file list…';
+    const listRes = await apiGet('getExamSnapshotFiles', { examId });
+    if (!listRes.success || !listRes.files || !listRes.files.length) {
+      throw new Error(listRes.error || 'No snapshots found for this exam.');
+    }
+
+    const files = listRes.files;
+    const zip = new JSZip();
+    const folderFor = {};
+    const folderName = (cid) => {
+      const nm = (nameByCid[cid] || '').replace(/[^\w -]/g, '').trim();
+      return nm ? `${nm}_${cid}` : cid;
+    };
+    let done = 0;
+    btn.textContent = `Preparing 0/${files.length}…`;
+
+    const CONCURRENCY = 3;
+    let nextIndex = 0;
+    async function worker() {
+      while (nextIndex < files.length) {
+        const f = files[nextIndex++];
+        const res = await apiGet('getEvidenceFileData', { examId, candidateId: f.candidateId, fileId: f.fileId });
+        if (!res.success) throw new Error(res.error || ('A snapshot for ' + f.candidateId + ' could not be fetched.'));
+        if (!folderFor[f.candidateId]) folderFor[f.candidateId] = zip.folder(folderName(f.candidateId));
+        folderFor[f.candidateId].file(res.name, base64WebSafeToUint8(res.dataBase64));
+        done++;
+        btn.textContent = `Preparing ${done}/${files.length}…`;
+      }
+    }
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, files.length) }, worker));
+
+    btn.textContent = 'Zipping…';
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `snapshots_${examId}.zip`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    btn.textContent = 'Downloaded ✓';
+    setTimeout(() => { btn.textContent = originalLabel; btn.disabled = false; }, 3000);
+  } catch (e) {
+    btn.textContent = 'Failed — retry';
+    btn.disabled = false;
+    alert('Snapshot download failed: ' + e.message);
+  }
+}
+
+// Fetches every recording segment for the WHOLE exam through the backend
+// API and assembles one ZIP in the browser, with a folder per candidate —
+// the examiner never touches Drive, and recordings are never link-shared.
+async function downloadExamRecordingsZip(examId, nameByCid, btn) {
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  try {
+    if (typeof JSZip === 'undefined') throw new Error('ZIP library did not load — check the internet connection and reload the page.');
+
+    btn.textContent = 'Fetching file list…';
+    const listRes = await apiGet('getExamRecordingFiles', { examId });
+    if (!listRes.success || !listRes.files || !listRes.files.length) {
+      throw new Error(listRes.error || 'No recording segments found for this exam.');
+    }
+
+    const files = listRes.files;
+    const zip = new JSZip();
+    const folderFor = {};
+    const folderName = (cid) => {
+      const nm = (nameByCid[cid] || '').replace(/[^\w -]/g, '').trim();
+      return nm ? `${nm}_${cid}` : cid;
+    };
+    let done = 0;
+    btn.textContent = `Preparing 0/${files.length}…`;
+
+    const CONCURRENCY = 3;
+    let nextIndex = 0;
+    async function worker() {
+      while (nextIndex < files.length) {
+        const f = files[nextIndex++];
+        const res = await apiGet('getRecordingChunkData', { examId, candidateId: f.candidateId, fileId: f.fileId });
+        if (!res.success) throw new Error(res.error || ('A segment for ' + f.candidateId + ' could not be fetched.'));
+        if (!folderFor[f.candidateId]) folderFor[f.candidateId] = zip.folder(folderName(f.candidateId));
+        folderFor[f.candidateId].file(res.name, base64WebSafeToUint8(res.dataBase64));
+        done++;
+        btn.textContent = `Preparing ${done}/${files.length}…`;
+      }
+    }
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, files.length) }, worker));
+
+    btn.textContent = 'Zipping…';
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `recordings_${examId}.zip`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    btn.textContent = 'Downloaded ✓';
+    setTimeout(() => { btn.textContent = originalLabel; btn.disabled = false; }, 3000);
+  } catch (e) {
+    btn.textContent = 'Failed — retry';
+    btn.disabled = false;
+    alert('Recording download failed: ' + e.message);
+  }
+}
+
+// ---------- CANDIDATE HOME ----------
+function renderCandidateHome() {
+  return `
+    <div class="card">
+      <h2>Start an exam</h2>
+      <div class="sub">Enter the exam ID provided by your examination centre.</div>
+      <label>Exam ID</label>
+      <input type="text" id="candExamId" />
+      <button class="btn btn-gold" id="startExamBtn" style="margin-top:14px;">Continue</button>
+      <div id="startExamMsg"></div>
+    </div>
+  `;
+}
+
+function attachCandidateHomeHandlers() {
+  document.getElementById('startExamBtn').onclick = async () => {
+    const examId = val('candExamId');
+    if (!examId) return;
+    const result = await apiGet('getExamForCandidate', { examId, candidateId: state.user.userId, deviceId: getDeviceId() });
+    if (!result.success) {
+      // A refusal because the details are already in use / already submitted
+      // is shown prominently, since it means the candidate cannot proceed.
+      msg('startExamMsg', result.error || 'Exam not found.', true);
+      return;
+    }
+    if (!result.questions || result.questions.length === 0) {
+      msg('startExamMsg', 'This exam has no questions yet. Contact your exam administrator — questions may not have been added, or may have been added under a different exam ID.', true);
+      return;
+    }
+    state.exam = result.exam;
+    state.questions = result.questions;
+    state.answers = {};
+    state.currentQuestionIndex = 0;
+    state.serverRemainingSec = result.remainingSec;
+    state.isResumedSession = !!result.resumed;
+
+    const saved = localLoadAnswers();
+    if (saved) { state.answers = saved.answers || {}; }
+
+    state.gateStep = 'consent';
+    state.snapshots = {};
+    state.geoPosition = null;
+    state.currentView = 'permissionGate';
+    render();
+  };
+}
+
+// ---------- PERMISSION GATE (consent -> snapshots -> preflight) ----------
+const SNAPSHOT_SLOTS = [
+  { key: 'face', label: 'Your face' },
+  { key: 'system_back', label: 'Back of your system' },
+  { key: 'right_side', label: 'Right side of your location' },
+  { key: 'left_side', label: 'Left side of your location' }
+];
+
+function renderPermissionGate() {
+  if (state.gateStep === 'snapshots') return renderSnapshotStep();
+  return `
+    <div class="gate-overlay">
+      <div class="gate-card">
+        <div class="gate-icon">\u{1F3A5}</div>
+        <h2>Consent required before this exam</h2>
+        <p>${escapeHtml(state.exam.title)} is a proctored examination. Before proceeding, you must consent to ALL of the following being collected and used for examination-integrity purposes:</p>
+        <ul class="gate-list">
+          <li><strong>Pictures:</strong> snapshots of you and your surroundings, taken before the exam begins.</li>
+          <li><strong>Video recording:</strong> your camera is recorded for the full duration of the exam.</li>
+          <li><strong>Audio recording:</strong> your microphone is recorded for the full duration of the exam.</li>
+          <li><strong>Geographical location:</strong> your location at the time of the exam is captured once.</li>
+          <li>The exam runs in fullscreen. Exiting fullscreen, switching tabs, or moving away from the exam window is logged as a violation.</li>
+        </ul>
+        <label class="consent-check">
+          <input type="checkbox" id="consentCheckbox" />
+          <span>I consent to the use of my pictures, video recording, audio recording, and geographical location for the purposes of this examination, and I understand the exam cannot begin without this consent.</span>
+        </label>
+        <button class="btn btn-gold" id="grantAccessBtn" style="width:100%;">I accept \u2014 enable camera, microphone &amp; location</button>
+        <div id="gateError" style="margin-top:14px;"></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderSnapshotStep() {
+  const allCaptured = SNAPSHOT_SLOTS.every(s => state.snapshots[s.key]);
+  const nextSlot = SNAPSHOT_SLOTS.find(s => !state.snapshots[s.key]);
+  const slots = SNAPSHOT_SLOTS.map(s => {
+    const img = state.snapshots[s.key];
+    return `<div class="snap-slot ${img ? 'filled' : ''}">
+      ${img ? `<img src="${img}" alt="${escapeAttr(s.label)}" />` : `<div class="slot-empty">\u{1F4F7}</div>`}
+      <div class="slot-label">${escapeHtml(s.label)}</div>
+      ${img ? `<button class="snap-retake" data-key="${escapeAttr(s.key)}">Retake</button>` : ''}
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="gate-overlay">
+      <div class="gate-card snap-card">
+        <h2>Pre-exam snapshots</h2>
+        <p class="snap-intro">Using your camera, capture the four required snapshots. Position the camera (or turn your device) so each shot clearly shows what is asked, then press Capture.</p>
+        <video id="snapVideo" class="snap-video" autoplay muted playsinline></video>
+        <div class="snap-grid">${slots}</div>
+        ${allCaptured
+          ? `<button class="btn btn-gold" id="submitSnapshotsBtn" style="width:100%;">Submit snapshots &amp; continue to exam</button>`
+          : `<button class="btn btn-gold" id="captureSnapBtn" style="width:100%;">Capture: ${escapeHtml(nextSlot.label)}</button>`}
+        <div id="gateError" style="margin-top:8px;"></div>
+      </div>
+    </div>
+  `;
+}
+
+function getGeolocation() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) { reject(new Error('Geolocation is not supported by this browser.')); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, accuracy: pos.coords.accuracy }),
+      err => reject(new Error(err.message || 'Location permission was denied.')),
+      { enableHighAccuracy: false, timeout: 20000, maximumAge: 60000 }
+    );
+  });
+}
+
+function attachGateHandlers() {
+  if (state.gateStep === 'snapshots') { attachSnapshotHandlers(); return; }
+
+  document.getElementById('grantAccessBtn').onclick = async () => {
+    const errEl = document.getElementById('gateError');
+    errEl.innerHTML = '';
+
+    if (!document.getElementById('consentCheckbox').checked) {
+      errEl.innerHTML = `<div class="error-msg">You must tick the consent box before continuing. The exam cannot begin without your consent.</div>`;
+      return;
+    }
+
+    try {
+      errEl.innerHTML = '<div class="sub" style="color:#C7D6E3;">Requesting your location\u2026</div>';
+      state.geoPosition = await getGeolocation();
+    } catch (e) {
+      errEl.innerHTML = `<div class="error-msg">Location access is required and was not granted: ${escapeHtml(e.message)}. Enable location for this site and try again.</div>`;
+      return;
+    }
+
+    try {
+      errEl.innerHTML = '<div class="sub" style="color:#C7D6E3;">Requesting camera and microphone\u2026</div>';
+      // Resolution/frame-rate deliberately capped for reliable uploads on
+      // variable connectivity, without reducing proctoring usefulness.
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 640, max: 640 }, height: { ideal: 480, max: 480 }, frameRate: { ideal: 15, max: 15 } },
+        audio: true
+      });
+      state.mediaStream = stream;
+      stream.getTracks().forEach(track => {
+        track.addEventListener('ended', () => {
+          if (!state.examSubmitted) handleChunkUploadFailure(`${track.kind} track ended unexpectedly \u2014 device may have been disconnected or permission revoked.`);
+        });
+      });
+
+      state.snapshots = {};
+      state.gateStep = 'snapshots';
+      // Warm the face-detection library/model now, while the candidate is
+      // taking their snapshots, so monitoring is live the instant the exam
+      // starts. Failures are handled later by startFaceMonitor.
+      ensureFaceApiReady().catch(() => {});
+      render();
+    } catch (e) {
+      errEl.innerHTML = `<div class="error-msg">Camera/microphone access was denied or unavailable. You must grant access to begin the exam. (${escapeHtml(e.message)})</div>`;
+    }
+  };
+}
+
+function attachSnapshotHandlers() {
+  const videoEl = document.getElementById('snapVideo');
+  if (videoEl && state.mediaStream) videoEl.srcObject = state.mediaStream;
+
+  document.querySelectorAll('.snap-retake').forEach(btn => {
+    btn.onclick = () => { delete state.snapshots[btn.dataset.key]; render(); };
+  });
+
+  const captureBtn = document.getElementById('captureSnapBtn');
+  if (captureBtn) {
+    captureBtn.onclick = () => {
+      const nextSlot = SNAPSHOT_SLOTS.find(s => !state.snapshots[s.key]);
+      if (!nextSlot || !videoEl || !videoEl.videoWidth) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = videoEl.videoWidth;
+      canvas.height = videoEl.videoHeight;
+      canvas.getContext('2d').drawImage(videoEl, 0, 0);
+      state.snapshots[nextSlot.key] = canvas.toDataURL('image/jpeg', 0.75);
+      render();
+    };
+  }
+
+  const submitBtn = document.getElementById('submitSnapshotsBtn');
+  if (submitBtn) {
+    submitBtn.onclick = async () => {
+      const errEl = document.getElementById('gateError');
+      errEl.innerHTML = '';
+      submitBtn.disabled = true;
+      try {
+        submitBtn.textContent = 'Saving consent\u2026';
+        const consentRes = await apiPost('recordConsent', {
+          examId: state.exam.examId, candidateId: state.user.userId,
+          latitude: state.geoPosition ? state.geoPosition.latitude : '',
+          longitude: state.geoPosition ? state.geoPosition.longitude : '',
+          accuracy: state.geoPosition ? state.geoPosition.accuracy : ''
+        });
+        if (!consentRes || !consentRes.success) throw new Error((consentRes && consentRes.error) || 'Consent could not be saved.');
+
+        for (let i = 0; i < SNAPSHOT_SLOTS.length; i++) {
+          const slot = SNAPSHOT_SLOTS[i];
+          submitBtn.textContent = `Uploading snapshot ${i + 1}/${SNAPSHOT_SLOTS.length}\u2026`;
+          const dataUrl = state.snapshots[slot.key];
+          const marker = 'base64,';
+          const b64 = dataUrl.slice(dataUrl.indexOf(marker) + marker.length).replace(/\+/g, '-').replace(/\//g, '_');
+          const upRes = await apiPost('uploadSnapshot', {
+            examId: state.exam.examId, candidateId: state.user.userId,
+            label: slot.key, imageBase64: b64, mimeType: 'image/jpeg'
+          }, 45000);
+          if (!upRes || !upRes.success) throw new Error((upRes && upRes.error) || `Snapshot "${slot.label}" failed to upload.`);
+        }
+
+        submitBtn.textContent = 'Testing recording\u2026';
+        const preflight = await runRecordingPreflight();
+        if (!preflight.ok) throw new Error(preflight.reason);
+
+        await enterFullscreen();
+        await beginExam();
+      } catch (e) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit snapshots & continue to exam';
+        errEl.innerHTML = `<div class="error-msg">${escapeHtml(e.message)}<br><br>Please notify your invigilator, check your connection, and try again.</div>`;
+      }
+    };
+  }
+}
+
+async function enterFullscreen() {
+  const el = document.documentElement;
+  try {
+    if (el.requestFullscreen) await el.requestFullscreen();
+    else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+  } catch (e) { /* some browsers require direct user gesture; button click satisfies this */ }
+}
+
+// ---------- EXAM FLOW ----------
+async function beginExam() {
+  state.timeRemainingSec = state.serverRemainingSec !== null && state.serverRemainingSec !== undefined
+    ? state.serverRemainingSec
+    : Number(state.exam.durationMinutes) * 60;
+  state.violationCount = 0;
+  state.examSubmitted = false;
+  state.recordingHealth = 'starting';
+  state.recordingFailCount = 0;
+  state.currentView = 'exam';
+  render();
+
+  if (state.isResumedSession) showViolationToast('Resuming your exam with your remaining time — the clock did not reset.');
+
+  audit('exam_started', 'Exam "' + state.exam.title + '" started; lockdown engaged', state.exam.examId);
+  const claim = await apiPost('startSession', { examId: state.exam.examId, candidateId: state.user.userId, deviceId: getDeviceId() });
+  if (claim && claim.success === false && (claim.alreadyInUse || claim.alreadySubmitted)) {
+    // A duplicate slipped in during consent/snapshots — refuse before any
+    // question is shown, release everything, and send the candidate back.
+    stopAllTimers();
+    detachProctoringListeners();
+    disengageLockdown();
+    stopRecording();
+    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+    if (state.mediaStream) { state.mediaStream.getTracks().forEach(t => t.stop()); state.mediaStream = null; }
+    state.examSubmitted = true;
+    state.currentView = 'candidateHome';
+    render();
+    setTimeout(() => msg('startExamMsg', claim.error || 'These login details are already being used to take this exam on another device.', true), 60);
+    return;
+  }
+  startRecording();
+  startTimer();
+  startAnswerSync();
+  startHeartbeat();
+  attachProctoringListeners();
+  startFaceMonitor();
+}
+
+function renderExam() {
+  if (!state.questions || state.questions.length === 0) {
+    return `<div class="card"><h2>No questions available</h2><div class="empty-state">This exam currently has no questions loaded. Please contact your exam administrator.</div></div>`;
+  }
+  const q = state.questions[state.currentQuestionIndex];
+  const navButtons = state.questions.map((qq, i) => {
+    const answered = state.answers[qq.questionId] !== undefined;
+    const cls = i === state.currentQuestionIndex ? 'current' : (answered ? 'answered' : '');
+    return `<button class="qn-btn ${cls}" data-idx="${i}">${i + 1}</button>`;
+  }).join('');
+
+  return `
+    <div class="exam-topbar">
+      <div class="rec-indicator" id="recIndicator">${renderRecIndicatorContent()}</div>
+      <div class="timer" id="timerDisplay">--:--</div>
+    </div>
+    <div class="exam-shell">
+      <div>
+        <div class="card">
+          <div class="question-nav">${navButtons}</div>
+          <div class="q-prompt">${state.currentQuestionIndex + 1}. ${escapeHtml(q.prompt)}</div>
+          <div id="questionBody">${renderQuestionBody(q)}</div>
+          <div class="exam-actions">
+            <button class="btn btn-outline" id="prevBtn" ${state.currentQuestionIndex === 0 ? 'disabled' : ''}>Previous</button>
+            ${state.currentQuestionIndex === state.questions.length - 1
+              ? `<button class="btn btn-gold" id="submitBtn">Submit exam</button>`
+              : `<button class="btn" id="nextBtn">Save &amp; next</button>`}
+          </div>
+        </div>
+      </div>
+      <div class="side-panel">
+        <div class="card">
+          <video id="camPreview" class="cam-preview${state.faceLost ? ' face-lost' : ''}" autoplay muted playsinline></video>
+          <div class="sub" style="margin-top:10px;">Your camera and microphone are being recorded for the full duration of this exam.</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderQuestionBody(q) {
+  const current = state.answers[q.questionId];
+  if (q.type === 'mcq' || q.type === 'truefalse') {
+    const options = q.type === 'truefalse' ? ['True', 'False'] : q.options;
+    return `<div class="options-list">` + options.map((opt, i) => `
+      <label class="option-row ${current === opt ? 'selected' : ''}" data-opt="${escapeAttr(opt)}">
+        <input type="radio" name="mcq" ${current === opt ? 'checked' : ''} />
+        <span>${escapeHtml(opt)}</span>
+      </label>`).join('') + `</div>`;
+  }
+  if (q.type === 'shortanswer') {
+    return `<textarea id="shortAnswerInput" placeholder="Type your answer">${current ? escapeHtml(current) : ''}</textarea>`;
+  }
+  if (q.type === 'dragdrop') {
+    const order = current || [...q.options];
+    return `<div class="dragdrop-list" id="dragList">` + order.map((item, i) => `
+      <div class="drag-item" draggable="true" data-item="${escapeAttr(item)}">
+        <span class="drag-index">${i + 1}</span>
+        <span class="drag-handle">☰</span>
+        <span>${escapeHtml(item)}</span>
+      </div>`).join('') + `</div><div class="sub" style="margin-top:10px;">Drag items into the correct order.</div>`;
+  }
+  if (q.type === 'matching') {
+    // options assumed to be "Left | Right" pairs encoded as separate arrays via prompt convention;
+    // here we treat q.options as left items, and reuse them shuffled as right choices.
+    const rightChoices = shuffle([...q.options]);
+    const selections = current || {};
+    return `<div class="match-grid">
+      <div><div class="match-col-title">Item</div>${q.options.map((left, i) => `
+        <div class="match-item">${escapeHtml(left)}
+          <select class="match-select" data-left="${escapeAttr(left)}">
+            <option value="">— select match —</option>
+            ${rightChoices.map(r => `<option value="${escapeAttr(r)}" ${selections[left] === r ? 'selected' : ''}>${escapeHtml(r)}</option>`).join('')}
+          </select>
+        </div>`).join('')}</div>
+      <div><div class="match-col-title">Matches with</div>
+        <div class="sub">Choose the corresponding match from the dropdown next to each item.</div>
+      </div>
+    </div>`;
+  }
+  return '<div class="empty-state">Unsupported question type.</div>';
+}
+
+function attachExamHandlers() {
+  if (!state.questions || state.questions.length === 0) return;
+  const q = state.questions[state.currentQuestionIndex];
+
+  if (document.getElementById('camPreview') && state.mediaStream) {
+    document.getElementById('camPreview').srcObject = state.mediaStream;
+  }
+
+  document.querySelectorAll('.qn-btn').forEach(btn => {
+    btn.onclick = () => { persistCurrentAnswer(); state.currentQuestionIndex = Number(btn.dataset.idx); render(); };
+  });
+
+  if (q.type === 'mcq' || q.type === 'truefalse') {
+    document.querySelectorAll('.option-row').forEach(row => {
+      row.onclick = () => { state.answers[q.questionId] = row.dataset.opt; render(); };
+    });
+  }
+
+  if (q.type === 'dragdrop') {
+    setupDragAndDrop(q);
+  }
+
+  if (q.type === 'matching') {
+    document.querySelectorAll('.match-select').forEach(sel => {
+      sel.onchange = () => {
+        const current = state.answers[q.questionId] || {};
+        current[sel.dataset.left] = sel.value;
+        state.answers[q.questionId] = current;
+        localSaveAnswers();
+      };
+    });
+  }
+
+  const prevBtn = document.getElementById('prevBtn');
+  if (prevBtn) prevBtn.onclick = () => { persistCurrentAnswer(); state.currentQuestionIndex--; render(); };
+
+  const nextBtn = document.getElementById('nextBtn');
+  if (nextBtn) nextBtn.onclick = () => { persistCurrentAnswer(); state.currentQuestionIndex++; render(); };
+
+  const submitBtn = document.getElementById('submitBtn');
+  if (submitBtn) submitBtn.onclick = () => { persistCurrentAnswer(); confirmSubmit(); };
+}
+
+function persistCurrentAnswer() {
+  const q = state.questions[state.currentQuestionIndex];
+  if (q.type === 'shortanswer') {
+    const el = document.getElementById('shortAnswerInput');
+    if (el) state.answers[q.questionId] = el.value;
+  }
+  localSaveAnswers();
+}
+
+function setupDragAndDrop(q) {
+  const list = document.getElementById('dragList');
+  let dragEl = null;
+  list.querySelectorAll('.drag-item').forEach(item => {
+    item.addEventListener('dragstart', () => { dragEl = item; item.classList.add('dragging'); });
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      const newOrder = [...list.querySelectorAll('.drag-item')].map(el => el.dataset.item);
+      state.answers[q.questionId] = newOrder;
+      localSaveAnswers();
+      renderDragIndices();
+    });
+    item.addEventListener('dragover', e => {
+      e.preventDefault();
+      const after = getDragAfterElement(list, e.clientY);
+      if (after == null) list.appendChild(dragEl);
+      else list.insertBefore(dragEl, after);
+    });
+  });
+}
+
+function renderDragIndices() {
+  document.querySelectorAll('#dragList .drag-item').forEach((el, i) => {
+    el.querySelector('.drag-index').textContent = i + 1;
+  });
+}
+
+function getDragAfterElement(container, y) {
+  const items = [...container.querySelectorAll('.drag-item:not(.dragging)')];
+  return items.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) return { offset, element: child };
+    return closest;
+  }, { offset: -Infinity }).element;
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+// ---------- TIMER ----------
+function startTimer() {
+  updateTimerDisplay();
+  state.timerHandle = setInterval(() => {
+    state.timeRemainingSec--;
+    updateTimerDisplay();
+    if (state.timeRemainingSec <= 0) { clearInterval(state.timerHandle); autoSubmit(); }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById('timerDisplay');
+  if (!el) return;
+  const m = Math.floor(state.timeRemainingSec / 60);
+  const s = state.timeRemainingSec % 60;
+  el.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  el.classList.toggle('low', state.timeRemainingSec <= 60);
+}
+
+// ---------- ANSWER SYNC (local-first, batched) ----------
+function startAnswerSync() {
+  state.syncHandle = setInterval(syncAnswersToServer, ANSWER_SYNC_INTERVAL_MS);
+}
+
+async function syncAnswersToServer() {
+  if (!state.exam || state.examSubmitted) return;
+  const answers = Object.entries(state.answers).map(([questionId, answer]) => ({ questionId, answer }));
+  if (!answers.length) return;
+  try {
+    const result = await apiPost('submitAnswers', { examId: state.exam.examId, candidateId: state.user.userId, answers });
+    if (result && result.alreadySubmitted) forceCloseAlreadySubmitted();
+  } catch (e) { /* will retry on next interval; local copy remains source of truth */ }
+}
+
+function forceCloseAlreadySubmitted() {
+  if (state.examSubmitted) return;
+  state.examSubmitted = true;
+  stopAllTimers();
+  detachProctoringListeners();
+  disengageLockdown();
+  stopRecording();
+  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+  alert('This exam session is already marked as submitted (it may have been finalized from another tab or after a disconnection). You cannot continue.');
+  state.currentView = 'examSubmitted';
+  render();
+}
+
+function startHeartbeat() {
+  state.heartbeatHandle = setInterval(() => {
+    apiPost('startSession', { examId: state.exam.examId, candidateId: state.user.userId, deviceId: getDeviceId() }).then(r => {
+      // If the server reports this device no longer owns the session (another
+      // device took over an abandoned slot, or the exam was submitted), stop.
+      if (r && r.success === false && (r.alreadyInUse || r.alreadySubmitted) && !state.examSubmitted) {
+        forceCloseAlreadySubmitted();
+      }
+    }).catch(() => {});
+  }, HEARTBEAT_INTERVAL_MS);
+}
+
+// ---------- RECORDING (camera/mic -> chunked upload to Drive) ----------
+function renderRecIndicatorContent() {
+  if (state.recordingHealth === 'ok') {
+    return `<span class="rec-dot"></span> RECORDING — camera &amp; audio active`;
+  }
+  if (state.recordingHealth === 'starting') {
+    return `<span class="rec-dot"></span> Starting recording…`;
+  }
+  if (state.recordingHealth === 'warning') {
+    return `<span class="rec-dot" style="background:#F5B041;"></span> Recording upload delayed — retrying`;
+  }
+  return `<span class="rec-dot" style="background:#F5B041; animation:none;"></span> ⚠ Recording issue detected — notify your invigilator`;
+}
+
+function updateRecIndicatorDOM() {
+  const el = document.getElementById('recIndicator');
+  if (el) el.innerHTML = renderRecIndicatorContent();
+}
+
+function setRecordingHealth(status) {
+  state.recordingHealth = status;
+  updateRecIndicatorDOM();
+}
+
+// Records ~2.5 seconds from the already-granted media stream and uploads it
+// through the exact same pipeline real exam chunks use. Returns {ok, reason}.
+// This proves camera capture, encoding, base64 transport, Apps Script, and
+// Drive write all work end-to-end before the exam is allowed to begin.
+const REQUIRED_BACKEND_VERSION_PREFIX = 'v3.0';
+
+async function runRecordingPreflight() {
+  // Step 1: confirm the LIVE backend is running current code. A stale
+  // deployment is the most common cause of recording failures, so it is
+  // named explicitly rather than surfacing as a cryptic decode error.
+  try {
+    const ping = await apiGet('ping', {});
+    if (!ping || !ping.success) {
+      return { ok: false, reason: 'The server did not respond to a status check. Check the internet connection and the backend deployment.' };
+    }
+    if (!ping.version) {
+      return { ok: false, reason: 'The live backend is running OUTDATED code (no version marker found). The administrator must paste the latest Code.gs into Apps Script and create a NEW VERSION on this deployment (Deploy → Manage deployments → edit → Version: New version → Deploy). Saving the code alone does not update the live URL.' };
+    }
+    if (String(ping.version).indexOf(REQUIRED_BACKEND_VERSION_PREFIX) !== 0) {
+      const serverNum = parseFloat(String(ping.version).replace(/^v/, ''));
+      const requiredNum = parseFloat(REQUIRED_BACKEND_VERSION_PREFIX.replace(/^v/, ''));
+      if (!isNaN(serverNum) && !isNaN(requiredNum) && serverNum > requiredNum) {
+        return { ok: false, reason: `This PAGE is outdated, not the server. The server is running "${ping.version}" but this page is an older app version requiring ${REQUIRED_BACKEND_VERSION_PREFIX}. The administrator should upload the latest index.html to the website; candidates should hard-refresh this page (Ctrl+F5) to clear the cached old version.` };
+      }
+      return { ok: false, reason: `The live backend version is "${ping.version}" but this app requires ${REQUIRED_BACKEND_VERSION_PREFIX}. The administrator must paste the latest Code.gs and deploy a NEW VERSION on this deployment.` };
+    }
+  } catch (e) {
+    return { ok: false, reason: 'Could not reach the server for a status check: ' + e.message };
+  }
+
+  // Step 2: full end-to-end recording test.
+  try {
+    const mimeCandidates = ['video/webm;codecs=vp8,opus', 'video/webm;codecs=vp9,opus', 'video/webm', 'video/mp4'];
+    const mimeType = mimeCandidates.find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
+    const blob = await new Promise((resolve, reject) => {
+      const rec = new MediaRecorder(state.mediaStream, { mimeType, videoBitsPerSecond: 350000, audioBitsPerSecond: 64000 });
+      const parts = [];
+      rec.ondataavailable = e => { if (e.data && e.data.size > 0) parts.push(e.data); };
+      rec.onerror = () => reject(new Error('MediaRecorder failed during the test clip.'));
+      rec.onstop = () => resolve(new Blob(parts, { type: mimeType }));
+      rec.start();
+      setTimeout(() => { if (rec.state !== 'inactive') rec.stop(); }, 2500);
+    });
+    if (!blob || blob.size === 0) return { ok: false, reason: 'The test clip came back empty — your camera may be in use by another application.' };
+    const base64Data = await blobToBase64(blob);
+    const result = await apiPost('uploadRecordingChunk', {
+      examId: state.exam.examId, candidateId: state.user.userId,
+      chunkIndex: 0, mimeType, base64Data, isPreflight: true
+    }, 30000);
+    if (result && result.success) return { ok: true };
+    return { ok: false, reason: (result && result.error) || 'The server rejected the test upload.' };
+  } catch (e) {
+    const reason = e.name === 'AbortError'
+      ? 'The test upload timed out — your connection may be too slow or unstable right now.'
+      : e.message;
+    return { ok: false, reason };
+  }
+}
+
+function startRecording() {
+  if (!state.mediaStream) return;
+  state.chunkIndex = 0;
+  startNewRecorderSegment();
+}
+
+function startNewRecorderSegment() {
+  try {
+    // VP8 first: broader hardware compatibility and lower encoding overhead
+    // than VP9 across the varied device specs candidates may be using.
+    const mimeCandidates = ['video/webm;codecs=vp8,opus', 'video/webm;codecs=vp9,opus', 'video/webm', 'video/mp4'];
+    const mimeType = mimeCandidates.find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
+    // Explicit bitrate cap keeps each ~30s segment to roughly 1.5-2MB
+    // regardless of device/browser encoder defaults, so uploads stay fast
+    // and reliable even on weaker connections.
+    const recorder = new MediaRecorder(state.mediaStream, {
+      mimeType,
+      videoBitsPerSecond: 350000,
+      audioBitsPerSecond: 64000
+    });
+    const chunks = [];
+
+    recorder.ondataavailable = e => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+    recorder.onerror = () => handleChunkUploadFailure('MediaRecorder reported an error mid-segment.');
+    recorder.onstop = async () => {
+      const blob = new Blob(chunks, { type: mimeType });
+      await uploadChunk(blob, mimeType, state.chunkIndex);
+      state.chunkIndex++;
+      if (!state.examSubmitted) startNewRecorderSegment(); // continue recording next segment
+    };
+
+    recorder.start();
+    state.mediaRecorder = recorder;
+    setTimeout(() => { if (recorder.state !== 'inactive') recorder.stop(); }, RECORDING_CHUNK_SECONDS * 1000);
+  } catch (e) {
+    handleChunkUploadFailure('Could not start a new recording segment: ' + e.message);
+  }
+}
+
+function stopRecording() {
+  if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') state.mediaRecorder.stop();
+  if (state.mediaStream) state.mediaStream.getTracks().forEach(t => t.stop());
+}
+
+async function uploadChunk(blob, mimeType, chunkIndex) {
+  if (!blob || blob.size === 0) {
+    handleChunkUploadFailure('Recorded segment was empty (0 bytes) — camera/mic stream may have stopped.');
+    return;
+  }
+  try {
+    const base64Data = await blobToBase64(blob);
+    const result = await apiPost('uploadRecordingChunk', {
+      examId: state.exam.examId, candidateId: state.user.userId,
+      chunkIndex, mimeType, base64Data
+    }, 60000); // bounded timeout — a stalled upload shouldn't hang indefinitely
+    if (result && result.success) {
+      state.recordingFailCount = 0;
+      setRecordingHealth('ok');
+    } else {
+      handleChunkUploadFailure((result && result.error) || 'Backend rejected the recording chunk.');
+    }
+  } catch (e) {
+    const detail = e.name === 'AbortError' ? 'Upload timed out after 60 seconds (slow or dropped connection).' : ('Could not reach the server to upload the recording chunk: ' + e.message);
+    handleChunkUploadFailure(detail);
+  }
+}
+
+function handleChunkUploadFailure(detail) {
+  state.recordingFailCount++;
+  setRecordingHealth(state.recordingFailCount >= 3 ? 'failed' : 'warning');
+  // Best-effort audit trail — logged as a violation so examiners can see
+  // recording gaps during review, even though the exam itself is not halted.
+  if (state.exam && state.user) {
+    apiPost('logViolation', {
+      examId: state.exam.examId, candidateId: state.user.userId,
+      type: 'recording_upload_failed', detail
+    }).catch(() => {});
+  }
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      // The data URL header itself can contain a comma when the MIME type
+      // includes a codecs list (e.g. "data:video/webm;codecs=vp8,opus;base64,<data>"),
+      // so splitting on ',' grabs a header fragment instead of the payload.
+      // Take everything after the "base64," marker instead.
+      const result = reader.result;
+      const marker = 'base64,';
+      const idx = result.indexOf(marker);
+      if (idx === -1) { reject(new Error('Unexpected data URL format from FileReader.')); return; }
+      const standard = result.slice(idx + marker.length);
+      // Web-safe base64 (- and _ instead of + and /): the '+' character can
+      // be silently converted to a space in transit, corrupting the payload.
+      resolve(standard.replace(/\+/g, '-').replace(/\//g, '_'));
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+// ---------- PROCTORING (fullscreen + tab-switch detection) ----------
+function attachProctoringListeners() {
+  document.addEventListener('visibilitychange', onVisibilityChange);
+  document.addEventListener('fullscreenchange', onFullscreenChange);
+  window.addEventListener('blur', onWindowBlur);
+  document.documentElement.addEventListener('mouseleave', onFrameLeave);
+  engageLockdown();
+}
+
+function detachProctoringListeners() {
+  document.removeEventListener('visibilitychange', onVisibilityChange);
+  document.removeEventListener('fullscreenchange', onFullscreenChange);
+  window.removeEventListener('blur', onWindowBlur);
+  document.documentElement.removeEventListener('mouseleave', onFrameLeave);
+}
+
+// ---------- EXAM LOCKDOWN ----------
+// The strongest lockdown a browser web app can enforce. It CANNOT control
+// the operating system (Alt+Tab, the Windows/Cmd key, Task Manager, and
+// closing other apps are outside any website's reach — only installed kiosk
+// software can do that). Within the browser it blocks copy/paste/print/save,
+// context menus, and known shortcut combos, keeps the exam in fullscreen,
+// and logs every breach attempt to the audit trail and violations.
+function lockdownKeyHandler(e) {
+  if (state.examSubmitted) return;
+  const k = (e.key || '').toLowerCase();
+  const combos =
+    e.key === 'F12' ||
+    (e.ctrlKey && e.shiftKey && ['i', 'j', 'c'].includes(k)) ||   // devtools
+    (e.ctrlKey && ['u', 's', 'p', 'c', 'v', 'x', 'a', 'f'].includes(k)) || // view-source/save/print/copy/paste/cut/select/find
+    (e.metaKey && ['c', 'v', 'x', 'p', 's', 'a'].includes(k)) ||  // mac equivalents
+    (e.altKey && k === 'tab') ||                                   // best-effort (usually intercepted by OS)
+    k === 'f11';                                                   // manual fullscreen toggle
+  if (combos) {
+    e.preventDefault();
+    e.stopPropagation();
+    audit('lockdown_key_blocked', 'Blocked key combination during exam: ' + (e.ctrlKey ? 'Ctrl+' : '') + (e.metaKey ? 'Meta+' : '') + (e.altKey ? 'Alt+' : '') + (e.shiftKey ? 'Shift+' : '') + e.key, state.exam.examId);
+  }
+}
+
+function lockdownCopyHandler(e) {
+  if (state.examSubmitted) return;
+  e.preventDefault();
+  audit('lockdown_clipboard_blocked', 'Blocked clipboard/copy/cut/paste action during exam', state.exam.examId);
+}
+
+function engageLockdown() {
+  document.addEventListener('keydown', lockdownKeyHandler, true);
+  document.addEventListener('copy', lockdownCopyHandler, true);
+  document.addEventListener('cut', lockdownCopyHandler, true);
+  document.addEventListener('paste', lockdownCopyHandler, true);
+  document.addEventListener('beforeprint', lockdownCopyHandler, true);
+  // Suppress text selection to further discourage copying question content.
+  document.body.style.userSelect = 'none';
+  document.body.style.webkitUserSelect = 'none';
+}
+
+function disengageLockdown() {
+  document.removeEventListener('keydown', lockdownKeyHandler, true);
+  document.removeEventListener('copy', lockdownCopyHandler, true);
+  document.removeEventListener('cut', lockdownCopyHandler, true);
+  document.removeEventListener('paste', lockdownCopyHandler, true);
+  document.removeEventListener('beforeprint', lockdownCopyHandler, true);
+  document.body.style.userSelect = '';
+  document.body.style.webkitUserSelect = '';
+}
+
+function onVisibilityChange() {
+  if (document.hidden && !state.examSubmitted) recordViolation('tab_switch', 'Candidate switched tabs or minimized the window.');
+}
+
+function onFullscreenChange() {
+  if (!document.fullscreenElement && !state.examSubmitted) {
+    recordViolation('fullscreen_exit', 'Candidate exited fullscreen mode.');
+    enterFullscreen(); // attempt to re-enforce
+  }
+}
+
+function onWindowBlur() {
+  if (!state.examSubmitted) recordViolation('window_blur', 'Exam window lost focus.');
+}
+
+// Fires when the pointer moves outside the exam window's frame. Debounced
+// to at most one violation per 10 seconds so a single wander doesn't stack
+// multiple flags.
+function onFrameLeave() {
+  if (state.examSubmitted) return;
+  const now = Date.now();
+  if (now - state.lastFrameLeaveAt < 10000) return;
+  state.lastFrameLeaveAt = now;
+  recordViolation('left_window_frame', 'Candidate moved away from the frame of the exam window.');
+}
+
+function recordViolation(type, detail) {
+  apiPost('logViolation', { examId: state.exam.examId, candidateId: state.user.userId, type, detail }).catch(() => {});
+
+  if (CONDUCT_VIOLATION_TYPES.includes(type)) {
+    state.violationCount++;
+    showViolationToast(`${detail} This incident has been logged (conduct flag ${state.violationCount}) and will be available to the examiner reviewing this sitting.`);
+  } else {
+    showViolationToast(detail);
+  }
+}
+
+function showViolationToast(detail) {
+  const toast = document.createElement('div');
+  toast.className = 'violation-toast';
+  toast.textContent = `⚠ Flagged: ${detail}`;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 4000);
+}
+
+// ---------- SUBMIT ----------
+function confirmSubmit() {
+  const unanswered = state.questions.length - Object.keys(state.answers).length;
+  const warning = unanswered > 0 ? `You have ${unanswered} unanswered question(s). ` : '';
+  if (confirm(`${warning}Submit your exam now? This cannot be undone.`)) submitExam();
+}
+
+function autoSubmit() {
+  alert('Time is up. Your exam is being submitted automatically.');
+  submitExam();
+}
+
+async function submitExam() {
+  state.examSubmitted = true;
+  stopAllTimers();
+  detachProctoringListeners();
+
+  const answers = Object.entries(state.answers).map(([questionId, answer]) => ({ questionId, answer }));
+  try {
+    await apiPost('submitFinalAnswers', { examId: state.exam.examId, candidateId: state.user.userId, answers });
+  } catch (e) { /* local copy retained in localStorage regardless */ }
+
+  stopRecording();
+  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+
+  localStorage.removeItem(LOCAL_KEY_PREFIX + state.exam.examId + '_' + state.user.userId);
+
+  audit('exam_submitted', 'Exam submitted; lockdown released', state.exam.examId);
+  disengageLockdown();
+  state.currentView = 'examSubmitted';
+  render();
+}
+
+function stopAllTimers() {
+  if (state.timerHandle) clearInterval(state.timerHandle);
+  if (state.syncHandle) clearInterval(state.syncHandle);
+  if (state.heartbeatHandle) clearInterval(state.heartbeatHandle);
+  if (state.faceMonitorHandle) clearInterval(state.faceMonitorHandle);
+}
+
+// ---------- FACE-IN-FRAME MONITOR ----------
+// Loads a script, resolving only once it has actually executed.
+function loadExternalScript(src, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error('timed out'));
+    }, timeoutMs || 20000);
+    s.src = src;
+    s.async = true;
+    s.onload = () => { if (settled) return; settled = true; clearTimeout(timer); resolve(); };
+    s.onerror = () => { if (settled) return; settled = true; clearTimeout(timer); reject(new Error('not reachable')); };
+    document.head.appendChild(s);
+  });
+}
+
+// Loads the face-detection library and model, trying each source in turn.
+// Memoised: callers share one attempt. Warmed early (while the candidate is
+// taking snapshots) so detection is ready the moment the exam begins.
+function ensureFaceApiReady() {
+  if (faceApiReadyPromise) return faceApiReadyPromise;
+  faceApiReadyPromise = (async () => {
+    if (typeof faceapi === 'undefined') {
+      const errs = [];
+      for (let i = 0; i < FACE_LIB_URLS.length; i++) {
+        try {
+          await loadExternalScript(FACE_LIB_URLS[i]);
+          if (typeof faceapi !== 'undefined') { faceLibSource = FACE_LIB_URLS[i]; break; }
+          errs.push(FACE_LIB_URLS[i] + ' (loaded but did not define faceapi)');
+        } catch (e) {
+          errs.push(FACE_LIB_URLS[i] + ' (' + e.message + ')');
+        }
+      }
+      if (typeof faceapi === 'undefined') {
+        throw new Error('Face-detection library could not be loaded from any source — ' + errs.join('; '));
+      }
+    }
+    const modelErrs = [];
+    for (let i = 0; i < FACE_MODEL_URLS.length; i++) {
+      try {
+        await faceapi.nets.tinyFaceDetector.loadFromUri(FACE_MODEL_URLS[i]);
+        faceModelSource = FACE_MODEL_URLS[i];
+        return true;
+      } catch (e) {
+        modelErrs.push(FACE_MODEL_URLS[i] + ' (' + (e.message || e) + ')');
+      }
+    }
+    throw new Error('Face-detection model could not be loaded from any source — ' + modelErrs.join('; '));
+  })();
+  return faceApiReadyPromise;
+}
+
+// Checks every 3 seconds whether a face is present in the camera preview.
+// Present: thick BLUE frame. Absent for two consecutive checks: frame turns
+// RED and a 'face_out_of_frame' conduct violation is logged once per
+// departure (a fresh flag requires the face to return first).
+async function startFaceMonitor() {
+  try {
+    await ensureFaceApiReady();
+    audit('face_monitor_ready', 'Face monitoring active (library: ' + faceLibSource + ', model: ' + faceModelSource + ')', state.exam.examId);
+  } catch (e) {
+    // Deliberate: a monitoring outage never blocks a candidate's exam. The
+    // failure is logged with the exact sources tried so it can be fixed.
+    apiPost('logViolation', {
+      examId: state.exam.examId, candidateId: state.user.userId,
+      type: 'face_monitor_unavailable', detail: e.message
+    }).catch(() => {});
+    return;
+  }
+
+  state.faceLost = false;
+  state.faceMisses = 0;
+  state.faceMonitorHandle = setInterval(async () => {
+    if (state.examSubmitted || state.faceDetectBusy) return;
+    const videoEl = document.getElementById('camPreview');
+    if (!videoEl || !videoEl.videoWidth) return;
+    state.faceDetectBusy = true;
+    try {
+      const detection = await faceapi.detectSingleFace(
+        videoEl, new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.4 })
+      );
+      if (detection) {
+        state.faceMisses = 0;
+        if (state.faceLost) {
+          state.faceLost = false;
+          videoEl.classList.remove('face-lost');
+        }
+      } else {
+        state.faceMisses++;
+        if (state.faceMisses >= 2 && !state.faceLost) {
+          state.faceLost = true;
+          videoEl.classList.add('face-lost');
+          recordViolation('face_out_of_frame', 'Candidate\'s face left the camera frame.');
+        }
+      }
+    } catch (e) { /* transient detection error — try again next tick */ }
+    state.faceDetectBusy = false;
+  }, 3000);
+}
+
+function renderSubmitted() {
+  return `
+    <div class="card" style="text-align:center; padding:50px 20px;">
+      <div style="font-size:40px;">✅</div>
+      <h2>Exam submitted</h2>
+      <p class="sub">Your responses have been recorded. You may now close this window.</p>
+    </div>
+  `;
+}
+
+// ---------- UTIL ----------
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function escapeAttr(str) { return escapeHtml(str).replace(/`/g, '&#96;'); }
+
+// ---------- INIT ----------
+// Deterrents against casual source inspection: right-click (view source /
+// inspect) and the common DevTools shortcuts are disabled app-wide.
+// Note: this raises the bar for average candidates but is not absolute —
+// determined users can still open DevTools from the browser menu or before
+// the page loads. Real integrity comes from the server-side controls
+// (answers validated server-side, correct answers never sent to candidates,
+// proctoring recording, and violation logging).
+document.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  if (state.currentView === 'exam' && !state.examSubmitted) {
+    showViolationToast('Right-click is disabled during this exam.');
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  const key = (e.key || '').toLowerCase();
+  const blocked =
+    e.key === 'F12' ||                                        // DevTools
+    (e.ctrlKey && e.shiftKey && ['i', 'j', 'c'].includes(key)) || // Inspect / Console / Element picker
+    (e.ctrlKey && key === 'u');                               // View source
+  if (blocked) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (state.currentView === 'exam' && !state.examSubmitted) {
+      showViolationToast('Developer tools are disabled during this exam.');
+    }
+  }
+});
+
+window.addEventListener('beforeunload', (e) => {
+  if (state.currentView === 'exam' && !state.examSubmitted) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+render();
+</script>
+</body>
+</html>
